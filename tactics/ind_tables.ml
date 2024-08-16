@@ -31,9 +31,9 @@ type mutual_scheme_object_function =
 type individual_scheme_object_function =
   Environ.env -> handle -> inductive -> constr Evd.in_ustate
 
-type 'a scheme_kind = string
+type 'a scheme_kind = string list
 
-let pr_scheme_kind = Pp.str
+let pr_scheme_kind = Pp.prlist Pp.str
 
 (**********************************************************************)
 (* The table of scheme building functions *)
@@ -49,17 +49,28 @@ type scheme_object_function =
   | MutualSchemeFunction of mutual_scheme_object_function * (Environ.env -> MutInd.t -> scheme_dependency list) option
   | IndividualSchemeFunction of individual_scheme_object_function * (Environ.env -> inductive -> scheme_dependency list) option
 
-let scheme_object_table =
-  (Hashtbl.create 17 : (string, string * scheme_object_function) Hashtbl.t)
+(* Ne contient que les schemes creer au lancement de coqtop (ou autre)
 
-let declare_scheme_object key ?(suff=key) f =
+On n'y ajoute pas les schemes des inductifs def par l'utilisateur. *)
+let scheme_object_table =
+  (Hashtbl.create 17 : (string list, (Names.Id.t option -> string) * scheme_object_function) Hashtbl.t)
+(* (Hashtbl.create 17 : (string, string * scheme_object_function) Hashtbl.t) *)
+
+let key_str key = String.concat "_" key
+    
+let make_suff key =
+  (function
+     | None -> (key_str key)
+     | Some id -> (Id.to_string id) ^ "_" ^ (key_str key))
+
+let declare_scheme_object key ?(suff=(make_suff key)) f =
   let () =
-    if not (Id.is_valid ("ind_" ^ suff)) then
-      CErrors.user_err Pp.(str ("Illegal induction scheme suffix: " ^ suff))
+    if not (Id.is_valid ("ind_" ^ suff None)) then
+      CErrors.user_err Pp.(str ("Illegal induction scheme suffix: " ^ suff None))
   in
   if Hashtbl.mem scheme_object_table key then
     CErrors.user_err
-      Pp.(str "Scheme object " ++ str key ++ str " already declared.")
+      Pp.(str "Scheme object " ++ str (key_str key) ++ str " already declared.")
   else begin
     Hashtbl.add scheme_object_table key (suff,f);
     key
@@ -71,9 +82,11 @@ let declare_mutual_scheme_object key ?suff ?deps f =
 let declare_individual_scheme_object key ?suff ?deps f =
   declare_scheme_object key ?suff (IndividualSchemeFunction (f, deps))
 
-let is_declared_scheme_object key = Hashtbl.mem scheme_object_table key
+let is_declared_scheme_object key =
+  let tmp = String.split_on_char '_' key in
+  Hashtbl.mem scheme_object_table tmp
 
-let scheme_kind_name (key : _ scheme_kind) : string = key
+let scheme_kind_name (key : _ scheme_kind) : string list = key
 
 (**********************************************************************)
 (* Defining/retrieving schemes *)
@@ -100,20 +113,21 @@ let redeclare_schemes eff =
       let _ = DeclareScheme.lookup_scheme kind ind in
       accu
     with Not_found ->
-      let old = try String.Map.find kind accu with Not_found -> [] in
-      String.Map.add kind ((ind, c) :: old) accu
+      let old = try CList.Map.find kind accu with Not_found -> [] in
+      CList.Map.add kind ((ind, c) :: old) accu
   in
-  let schemes = Cmap.fold fold eff.Evd.seff_roles String.Map.empty in
+  let schemes = Cmap.fold fold eff.Evd.seff_roles CList.Map.empty in
   let iter kind defs = List.iter (DeclareScheme.declare_scheme SuperGlobal kind) defs in
-  String.Map.iter iter schemes
+  CList.Map.iter iter schemes
 
 let local_lookup_scheme eff kind ind = match lookup_scheme kind ind with
 | Some _ as ans -> ans
 | None ->
   let exception Found of Constant.t in
   let iter c role = match role with
-  | Evd.Schema (i, k) ->
-    if String.equal k kind && Ind.UserOrd.equal i ind then raise (Found c)
+    | Evd.Schema (i, k) ->
+      let tmp = if (CList.compare Stdlib.compare k kind == 0) then true else false in
+      if tmp && Ind.UserOrd.equal i ind then raise (Found c)
   in
   (* Inefficient O(n), but the number of locally declared schemes is small and
      this is very rarely called *)
@@ -128,6 +142,7 @@ let define ?loc internal role id c poly uctx =
   let uctx = UState.minimize uctx in
   let c = UState.nf_universes uctx c in
   let univs = UState.univ_entry ~poly uctx in
+  (* ici on appelle vernac/declare.ml declare_definition_scheme *)
   !declare_definition_scheme ~internal ~univs ~role ~name:id ?loc c
 
   module Locmap : sig
@@ -171,7 +186,7 @@ let rec define_individual_scheme_base ?loc kind suff f ~internal idopt (mind,i a
   let mib = Global.lookup_mind mind in
   let id = match idopt with
     | Some id -> id
-    | None -> add_suffix mib.mind_packets.(i).mind_typename ("_"^suff) in
+    | None -> Id.of_string (suff (Some mib.mind_packets.(i).mind_typename)) in
   let role = Evd.Schema (ind, kind) in
   let const, neff = define ?loc internal role id c (Declareops.inductive_is_polymorphic mib) ctx in
   let eff = Evd.concat_side_effects neff eff in
@@ -192,7 +207,7 @@ and define_mutual_scheme_base ?(locmap=Locmap.default None) kind suff f ~interna
   let mib = Global.lookup_mind mind in
   let ids = Array.init (Array.length mib.mind_packets) (fun i ->
       try Int.List.assoc i names
-      with Not_found -> add_suffix mib.mind_packets.(i).mind_typename ("_"^suff)) in
+      with Not_found -> Id.of_string (suff (Some mib.mind_packets.(i).mind_typename))) in
   let fold i effs id cl =
     let role = Evd.Schema ((mind, i), kind)in
     let loc = Locmap.lookup ~locmap (mind,i) in

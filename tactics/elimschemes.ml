@@ -102,38 +102,50 @@ let optimize_non_type_induction_scheme kind dep sort env _handle ind =
   | None ->
     build_induction_scheme_in_type env dep sort ind
 
+(* (Induction, Some inType) 
+enleve dep dans suff *)
 let rect_dep =
-  declare_individual_scheme_object "rect_dep"
+  declare_individual_scheme_object ["rect";"dep"]
     (fun env _ x -> build_induction_scheme_in_type env true InType x)
 
+(* (Induction, Some inSet) 
+enleve dep dans suff *)
 let rec_dep =
-  declare_individual_scheme_object "rec_dep"
+  declare_individual_scheme_object ["rec";"dep"]
     (optimize_non_type_induction_scheme rect_dep true InSet)
 
+(* (Induction, Some inProp) *)
 let ind_dep =
-  declare_individual_scheme_object "ind_dep"
+  declare_individual_scheme_object ["ind";"dep"]
     (optimize_non_type_induction_scheme rec_dep true InProp)
 
+(* (Induction, Some inSProp) *)
 let sind_dep =
-  declare_individual_scheme_object "sind_dep"
+  declare_individual_scheme_object ["sind";"dep"]
     (fun env _ x -> build_induction_scheme_in_type env true InSProp x)
 
+(* (Minimality, Some inType) *)
 let rect_nodep =
-  declare_individual_scheme_object "rect_nodep"
+  declare_individual_scheme_object ["rect";"nodep"]
     (fun env _ x -> build_induction_scheme_in_type env false InType x)
 
+(* (Minimality, Some inSet) *)
 let rec_nodep =
-  declare_individual_scheme_object "rec_nodep"
+  declare_individual_scheme_object ["rec";"nodep"]
     (optimize_non_type_induction_scheme rect_nodep false InSet)
 
+(* (Minimality, Some inProp) 
+enleve nodep dans suff *)
 let ind_nodep =
-  declare_individual_scheme_object "ind_nodep"
+  declare_individual_scheme_object ["ind";"nodep"]
     (optimize_non_type_induction_scheme rec_nodep false InProp)
 
+(* (Minimality, Some inSProp) 
+enleve nodep dans suff *)
 let sind_nodep =
-  declare_individual_scheme_object "sind_nodep"
+  declare_individual_scheme_object ["sind";"nodep"]
     (fun env _ x -> build_induction_scheme_in_type env false InSProp x)
-
+    
 let elim_scheme ~dep ~to_kind =
   match dep, to_kind with
   | false, InSProp -> sind_nodep
@@ -156,18 +168,23 @@ let build_case_analysis_scheme_in_type env dep sort ind =
   let (c, _) = Indrec.eval_case_analysis c in
   EConstr.Unsafe.to_constr c, Evd.ustate sigma
 
+(* Elimination, inType *)
 let case_dep =
-  declare_individual_scheme_object "case_dep"
+  declare_individual_scheme_object ["case";"dep"]
     (fun env _ x -> build_case_analysis_scheme_in_type env true InType x)
 
+(* Case, inType*)
 let case_nodep =
-  declare_individual_scheme_object "case_nodep"
+  declare_individual_scheme_object ["case";"nodep"]
     (fun env _ x -> build_case_analysis_scheme_in_type env false InType x)
 
+(* Elimination, inProp*)
 let casep_dep =
-  declare_individual_scheme_object "casep_dep"
+  declare_individual_scheme_object ["casep";"dep"]
     (fun env _ x -> build_case_analysis_scheme_in_type env true InProp x)
 
+(* Case, InProp *)
 let casep_nodep =
-  declare_individual_scheme_object "casep_nodep"
+  declare_individual_scheme_object ["casep";"nodep"]
     (fun env _ x -> build_case_analysis_scheme_in_type env false InProp x)
+    
