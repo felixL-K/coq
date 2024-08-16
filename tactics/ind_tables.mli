@@ -23,11 +23,11 @@ type 'a scheme_kind
 type handle
 
 type scheme_dependency =
-| SchemeMutualDep of MutInd.t * mutual scheme_kind
+| SchemeMutualDep of Names.MutInd.t * mutual scheme_kind
 | SchemeIndividualDep of inductive * individual scheme_kind
 
 type mutual_scheme_object_function =
-  Environ.env -> handle -> MutInd.t -> constr array Evd.in_ustate
+  Environ.env -> handle -> inductive list -> constr array Evd.in_ustate
 type individual_scheme_object_function =
   Environ.env -> handle -> inductive -> constr Evd.in_ustate
 
@@ -45,23 +45,27 @@ type individual_scheme_object_function =
     inductive's name.
 *)
 
-val declare_mutual_scheme_object : string ->
-  ?suff:string ->
-  ?deps:(Environ.env -> MutInd.t -> scheme_dependency list) ->
+val declare_mutual_scheme_object : string list * Sorts.family option * bool ->
+  (Declarations.one_inductive_body option -> string) ->
+  ?deps:(Environ.env -> Names.MutInd.t -> scheme_dependency list) ->
   mutual_scheme_object_function -> mutual scheme_kind
 
-val declare_individual_scheme_object : string ->
-  ?suff:string ->
+val declare_individual_scheme_object : string list * Sorts.family option * bool ->
+  (Declarations.one_inductive_body option -> string) ->
   ?deps:(Environ.env -> inductive -> scheme_dependency list) ->
   individual_scheme_object_function ->
   individual scheme_kind
 
-val is_declared_scheme_object : string -> bool
+val is_declared_scheme_object : string list * Sorts.family option * bool -> bool
 (** Is the string used as the name of a [scheme_kind]? *)
 
-val scheme_kind_name : _ scheme_kind -> string
+val scheme_kind_name : _ scheme_kind -> string list * Sorts.family option * bool
 (** Name of a [scheme_kind]. Can be used to register with DeclareScheme. *)
 
+val scheme_key : string list * Sorts.family option * bool -> _ scheme_kind
+
+val get_suff : string list -> Sorts.family option -> Declarations.one_inductive_body option -> string
+  
 (** Force generation of a (mutually) scheme with possibly user-level names *)
 
 val define_individual_scheme : ?loc:Loc.t -> individual scheme_kind ->
@@ -80,7 +84,7 @@ module Locmap : sig
 end
 
 val define_mutual_scheme : ?locmap:Locmap.t -> mutual scheme_kind ->
-  (int * Id.t) list -> MutInd.t -> unit
+  (int * Id.t) list -> inductive list -> unit
 
 (** Main function to retrieve a scheme in the cache or to generate it *)
 val find_scheme : 'a scheme_kind -> inductive -> Constant.t Proofview.tactic

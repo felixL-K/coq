@@ -104,24 +104,27 @@ module DefAttributes = struct
   let clearbody = bool_attribute ~name:"clearbody"
 
   (* [XXX] EJGA: coercion is unused here *)
-  let parse ?(coercion=false) ?(discharge=NoDischarge,"","") f =
+  let def_attributes_gen ?(coercion=false) ?(discharge=NoDischarge,"","") () =
     let discharge, deprecated_thing, replacement = discharge in
     let clearbody = match discharge with DoDischarge -> clearbody | NoDischarge -> return None in
-    let (((((((locality, user_warns), polymorphic), program),
-         canonical_instance), typing_flags), using),
-         reversible), clearbody =
-      parse (locality ++ user_warns_with_use_globref_instead ++ polymorphic ++ program ++
-             canonical_instance ++ typing_flags ++ using ++
-             reversible ++ clearbody)
-        f
-    in
-    let using = Option.map Proof_using.using_from_string using in
-    let reversible = Option.default false reversible in
-    let () = if Option.has_some clearbody && not (Lib.sections_are_opened())
-      then CErrors.user_err Pp.(str "Cannot use attribute clearbody outside sections.")
-    in
-    let scope = scope_of_locality locality discharge deprecated_thing replacement in
-    { scope; locality; polymorphic; program; user_warns; canonical_instance; typing_flags; using; reversible; clearbody }
+    (locality ++ user_warns_with_use_globref_instead ++ polymorphic ++ program ++
+               canonical_instance ++ typing_flags ++ using ++
+               reversible ++ clearbody) >>= fun ((((((((locality, user_warns), polymorphic), program),
+           canonical_instance), typing_flags), using),
+           reversible), clearbody) ->
+      let using = Option.map Proof_using.using_from_string using in
+      let reversible = Option.default false reversible in
+      let () = if Option.has_some clearbody && not (Lib.sections_are_opened())
+        then CErrors.user_err Pp.(str "Cannot use attribute clearbody outside sections.")
+      in
+      let scope = scope_of_locality locality discharge deprecated_thing replacement in
+      return { scope; locality; polymorphic; program; user_warns; canonical_instance; typing_flags; using; reversible; clearbody }
+
+  let parse ?coercion ?discharge f =
+    Attributes.parse (def_attributes_gen ?coercion ?discharge ()) f
+
+  let def_attributes = def_attributes_gen ()
+
 end
 
 let with_def_attributes ?coercion ?discharge ~atts f =
@@ -360,7 +363,16 @@ let print_registered_schemes () =
     pr_global (ConstRef c) ++ str " registered as " ++ str kind ++ str " for " ++ pr_global (IndRef ind)
   in
   let pr_schemes_of_ind (ind, schemes) =
-    prlist_with_sep fnl (pr_one_scheme ind) (CString.Map.bindings schemes)
+    let tmp = Sorts.Map.bindings schemes in
+    let tmpp = List.map (fun ((a,c,d),b) ->
+        (* /!\ will print 2 times if individual and mutual (represented by bool d here) are defined for a given scheme *)
+        let s1 = String.concat " " a in
+        let s2 = match c with
+          | Some s -> " (" ^ (Sorts.family_to_str s) ^ ")"
+          | None -> " (None)"
+        in
+        ((s1 ^ s2),b)) tmp in
+    prlist_with_sep fnl (pr_one_scheme ind) tmpp
   in
   hov 0 (prlist_with_sep fnl pr_schemes_of_ind (Indmap.bindings schemes))
 
@@ -777,7 +789,7 @@ let should_treat_as_uniform () =
   else ComInductive.NonUniformParameters
 
 (* [XXX] EGJA: several arguments not used here *)
-let vernac_record ~template udecl ~cumulative k ~poly ?typing_flags ~primitive_proj finite records =
+let vernac_record ~template udecl ~cumulative k ~poly ?typing_flags ~primitive_proj finite ?mode records =
   let map ((is_coercion, name), binders, sort, nameopt, cfs, ido) =
     let idbuild = match nameopt with
     | None -> Nameops.add_prefix "Build_" name.v
@@ -839,6 +851,13 @@ let primitive_proj =
 let { Goptions.get = do_auto_prop_lowering } =
   Goptions.declare_bool_option_and_ref ~key:["Automatic";"Proposition";"Inductives"] ~value:true ()
 
+let mode_attr =
+  let open Attributes in
+  let open Notations in
+  payload_attribute ?cat:None ~name:"mode" >>= function
+  | None -> return None
+  | Some mode -> return (Some (Hints.parse_modes mode))
+
 module Preprocessed_Mind_decl = struct
   type flags = ComInductive.flags
   type record = {
@@ -882,16 +901,21 @@ let preprocess_inductive_decl ~atts kind indl =
     if List.for_all is_record indl then primitive_proj
     else Notations.return false
   in
-  let (((template, (poly, cumulative)), private_ind), typing_flags), primitive_proj =
+  let hint_mode_attr : Hints.hint_mode list option Attributes.attribute =
+    match kind with
+    | Class _ -> mode_attr
+    | _ -> Notations.return None
+  in
+  let ((((template, (poly, cumulative)), private_ind), typing_flags), primitive_proj), mode =
     Attributes.(
       parse Notations.(
           template
           ++ polymorphic_cumulative ~is_defclass:(Option.has_some is_defclass)
-          ++ private_ind ++ typing_flags ++ prim_proj_attr)
+          ++ private_ind ++ typing_flags ++ prim_proj_attr ++ hint_mode_attr)
         atts)
   in
   let auto_prop_lowering = do_auto_prop_lowering () in
-  let flags = { ComInductive.template; cumulative; poly; finite; auto_prop_lowering; } in
+  let flags = { ComInductive.template; cumulative; poly; finite; auto_prop_lowering; mode } in
   if Option.has_some is_defclass then
     (* Definitional class case *)
     let (id, bl, c, l) = Option.get is_defclass in
@@ -910,7 +934,7 @@ let preprocess_inductive_decl ~atts kind indl =
               rf_locality ; rf_notation = [] ; rf_canonical = true } in
     let recordl = [id, bl, c, None, [f], None] in
     let kind = Class true in
-    let records = vernac_record ~template udecl ~cumulative kind ~poly ?typing_flags ~primitive_proj finite recordl in
+    let records = vernac_record ~template udecl ~cumulative kind ~poly ?typing_flags ~primitive_proj finite ?mode recordl in
     indl, Preprocessed_Mind_decl.(Record { flags; udecl; primitive_proj; kind; records })
   else if List.for_all is_record indl then
     (* Mutual record case *)
@@ -954,7 +978,7 @@ let preprocess_inductive_decl ~atts kind indl =
     in
     let kind = match kind with Class _ -> Class false | _ -> kind in
     let recordl = List.map unpack indl in
-    let records = vernac_record ~template udecl ~cumulative kind ~poly ?typing_flags ~primitive_proj finite recordl in
+    let records = vernac_record ~template udecl ~cumulative kind ~poly ?typing_flags ~primitive_proj finite ?mode recordl in
     indl, Preprocessed_Mind_decl.(Record { flags; udecl; primitive_proj; kind; records })
   else if List.for_all is_constructor indl then
     (* Mutual inductive case *)
@@ -1076,9 +1100,6 @@ let vernac_scheme l =
     List.iter (fun (lid, sch) ->
       Option.iter (fun lid -> Dumpglob.dump_definition lid false "def") lid) l;
   Indschemes.do_scheme (Global.env ()) l
-
-let vernac_scheme_equality ?locmap sch id =
-  Indschemes.do_scheme_equality ?locmap sch id
 
 (* [XXX] locmap unused here *)
 let vernac_combined_scheme lid l ~locmap =
@@ -1526,7 +1547,7 @@ let vernac_reserve bl =
     let sigma = Evd.from_env env in
     let t,ctx = Constrintern.interp_type env sigma c in
     let t = Flags.without_option Detyping.print_universes (fun () ->
-        Detyping.detype Detyping.Now Id.Set.empty env (Evd.from_ctx ctx) t)
+        Detyping.detype Detyping.Now env (Evd.from_ctx ctx) t)
         ()
     in
     let t,_ = Notation_ops.notation_constr_of_glob_constr (default_env ()) t in
@@ -2074,8 +2095,8 @@ let vernac_locate ~pstate query =
   | LocateOther (s, qid) -> Prettyp.print_located_other env s qid
   | LocateFile f -> locate_file f
 
-let warn_unknown_scheme_kind = CWarnings.create ~name:"unknown-scheme-kind"
-    Pp.(fun sk -> str "Unknown scheme kind " ++ Libnames.pr_qualid sk ++ str ".")
+(* let warn_unknown_scheme_kind = CWarnings.create ~name:"unknown-scheme-kind" *)
+(*     Pp.(fun sk -> str "Unknown scheme kind " ++ Libnames.pr_qualid sk ++ str ".") *)
 
 let vernac_register ~atts qid r =
   let gr = Smartlocate.global_with_alias qid in
@@ -2114,13 +2135,15 @@ let vernac_register ~atts qid r =
       | ConstRef c -> c
       | _ -> CErrors.user_err ?loc:qid.loc Pp.(str "Register Scheme: expecing a constant.")
     in
-    let scheme_kind_s = Libnames.string_of_qualid scheme_kind in
-    let () = if not (Ind_tables.is_declared_scheme_object scheme_kind_s) then
-        warn_unknown_scheme_kind ?loc:scheme_kind.loc scheme_kind
+    (* let scheme_kind_s = Libnames.string_of_qualid scheme_kind in *)
+    (* let scheme_kind_s_list = String.split_on_char '_' scheme_kind_s in *)
+    let () = if not (Ind_tables.is_declared_scheme_object (scheme_kind, Some InType,false)) then
+        (* warn_unknown_scheme_kind ?loc:scheme_kind.loc scheme_kind *)
+        CErrors.user_err Pp.(str ("unknown scheme kind " ^ (String.concat " " scheme_kind)))
     in
     let ind = Smartlocate.global_inductive_with_alias inductive in
     Dumpglob.add_glob ?loc:inductive.loc (IndRef ind);
-    DeclareScheme.declare_scheme local scheme_kind_s (ind,gr)
+    DeclareScheme.declare_scheme local (scheme_kind, Some InType,false) (ind,gr)
 
 let vernac_library_attributes atts =
   if Global.is_curmod_library () && not (Lib.sections_are_opened ()) then
@@ -2429,10 +2452,6 @@ let translate_pure_vernac ?loc ~atts v = let open Vernactypes in match v with
     vtdefault(fun () ->
         unsupported_attributes atts;
         vernac_scheme l)
-  | VernacSchemeEquality (sch,id) ->
-    vtdefault(fun () ->
-        unsupported_attributes atts;
-        vernac_scheme_equality sch id ~locmap:(Ind_tables.Locmap.default loc))
   | VernacCombinedScheme (id, l) ->
     vtdefault(fun () ->
         unsupported_attributes atts;

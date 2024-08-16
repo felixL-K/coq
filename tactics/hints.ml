@@ -1007,8 +1007,8 @@ let make_extern pri pat tacast =
 let make_mode ref m =
   let open Term in
   let ty, _ = Typeops.type_of_global_in_context (Global.env ()) ref in
-  let ctx, t = decompose_prod ty in
-  let n = List.length ctx in
+  let ctx, t = decompose_prod_decls ty in
+  let n = Context.Rel.nhyps ctx in
   let m' = Array.of_list m in
     if not (n == Array.length m') then
       user_err
@@ -1628,11 +1628,11 @@ let pr_id_hint env sigma (id, v) =
   | Some (ConstrPattern p | SyntacticPattern p) -> str", pattern " ++ pr_lconstr_pattern_env env sigma p
   | Some DefaultPattern -> str", pattern " ++ pr_leconstr_env env sigma (get_default_pattern v.code.obj)
   in
-  (pr_hint env sigma v.code ++ str"(level " ++ int v.pri ++ pr_pat v
-   ++ str", id " ++ int id ++ str ")" ++ spc ())
+  (pr_hint env sigma v.code ++ str" (level " ++ int v.pri ++ pr_pat v
+   ++ str", id " ++ int id ++ str ")")
 
 let pr_hint_list env sigma hintlist =
-  (str "  " ++ hov 0 (prlist (pr_id_hint env sigma) hintlist) ++ fnl ())
+  (str "  " ++ hov 0 (prlist_with_sep fnl (pr_id_hint env sigma) hintlist) ++ fnl ())
 
 let pr_hints_db env sigma (name,db,hintlist) =
   (str "In the database " ++ str name ++ str ":" ++
@@ -1691,10 +1691,23 @@ let pr_applicable_hint pf =
   | g::_ ->
     pr_hint_term env sigma (Evd.evar_concl (Evd.find_undefined sigma g))
 
-let pp_hint_mode = function
-  | ModeInput -> str"+"
-  | ModeNoHeadEvar -> str"!"
-  | ModeOutput -> str"-"
+let parse_mode s =
+  match s with
+  | "+" -> ModeInput
+  | "-" -> ModeOutput
+  | "!" -> ModeNoHeadEvar
+  | _ -> CErrors.user_err Pp.(str"Unrecognized hint mode " ++ str s)
+
+let parse_modes s =
+  let modes = String.split_on_char ' ' s in
+  List.map parse_mode modes
+
+let string_of_mode = function
+  | ModeInput -> "+"
+  | ModeOutput -> "-"
+  | ModeNoHeadEvar -> "!"
+
+let pp_hint_mode m = str (string_of_mode m)
 
 (* displays the whole hint database db *)
 let pr_hint_db_env env sigma db =
