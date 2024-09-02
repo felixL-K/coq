@@ -444,7 +444,7 @@ let mis_make_indrec env sigma ?(force_mutual=false) listdepkind mib u =
                assign (k-1) rest)
     in
       assign nrec listdepkind in
-  let recargsvec =      
+  let recargsvec =
     Array.map (fun mip -> mip.mind_recargs) mib.mind_packets in
   (* recarg information for non recursive parameters *)
   let rec recargparn l n =

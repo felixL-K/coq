@@ -862,6 +862,9 @@ define mutual scheme : c est just ca que va faire do scheme, avec peut etre le t
 key = string list avec maj
 suff = string sans maj et avec underscore
 
+ind_tables.ml ligne 188 : define_individual_scheme_base : use of suff
+                     ligne 210 : define_mutual_scheme_base 
+
 - [ ] supprimer sch_isdep, sch_isrec, scheme_suffix_gen, name_and_process_scheme
 
 ** indtables
