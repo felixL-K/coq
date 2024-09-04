@@ -368,11 +368,11 @@ let smart_ind qid =
    eliminator and its sort. *)
 let name_and_process_scheme env = function
   | (Some id, {sch_type; sch_qualid; sch_sort}) ->
-    let tmp = match sch_sort with Some s -> s | None -> CErrors.user_err Pp.(str "Schemes Induction​|Minimality​|Elimination​|Case takes in parameter \"Sort Type|Prop|SProp|Set\" ") in
+    let tmp = match sch_sort with Some s -> s | None -> InType in
     (id, sch_isdep sch_type, smart_ind sch_qualid, tmp)
   | (None, ({sch_type; sch_qualid; sch_sort} as sch)) ->
     (* If no name has been provided, we build one from the types of the ind requested *)
-    let tmp = match sch_sort with Some s -> s | None -> CErrors.user_err Pp.(str "Schemes Induction​|Minimality​|Elimination​|Case takes in parameter \"Sort Type|Prop|SProp|Set\" ") in
+    let tmp = match sch_sort with Some s -> s | None -> InType in
     let ind = smart_ind sch_qualid in
     let sort_of_ind =
       Indrec.pseudo_sort_family_for_elim ind

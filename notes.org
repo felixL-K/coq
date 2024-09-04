@@ -33,13 +33,13 @@ un truc tordu qui est basé sur la parametricité un melange entre les termes et
 
 ** Debug
 
-#+begin_src ocaml
+#+begin_src coq
 Scheme Induction for bool Sort Type.
 Scheme Induction for nat Sort Type.
 (* type_rec_branch, mis_make_case_com, make_rec_branch_arg, *)
 #+end_src
 
-#+begin_src ocaml
+#+begin_src coq
 Inductive nat : Set :=
 | O : nat
 | S : nat -> nat.
@@ -568,19 +568,18 @@ derive Inductive peano := Zero | Succ (p : peano).
 /home/fnifnou/Documents/stageCoq/coq/_build_ci/elpi/apps/derive/theories/derive.v
 definie la commande derive
 
-
 /home/fnifnou/Documents/stageCoq/coq/_build_ci/elpi/apps/derive/theories/derive/std.v
 ici on importe derive.
-puis on importe les derrivations de bases : map, lens, param1, inductions, eqb, etc.
-toutes ces derivations sont codé en elpi.
 
+Puis on importe les derrivations de bases : map, lens, param1, inductions, eqb, etc.
+(toutes ces derivations sont codé en elpi.)
 
 interface avec coq : src/elpi build ins
 
 ** DONE Aller voir dans paramcoq comment c est fait
 
 paramcoq/src/abstraction.mlg : search Parametricity
-ici qu'est defini la commande Parametricity qui creer les schemes de paramcoq pour un tyê inductif.
+ici qu'est defini la commande Parametricity qui creer les schemes de paramcoq pour un type inductif.
      | Parametricity <ident> as <name> [arity <n>].
      | Parametricity my_id as my_param.
      | Parametricity [Recursive] <ident> [arity <n>] [qualified].
@@ -601,7 +600,7 @@ redirrige vers la bonne fonction en fonction du type de ref du <indent> passé �
 paramcoq/src/parametricity.ml  175 : translate_id, translate_name, etc
 c'est dans ce fichier qu'est defini la syntaxe des noms de scheme defini.
 
-Les parametricity statements sont enregistrés dans ................
+Les parametricity statements sont enregistrés dans ?TODO?
 
 #+begin_src coq
 From Param Require Import Param.
@@ -651,13 +650,13 @@ elimschemes : build_case_analysis_scheme_in_type
 
      Gère des dependance avec d'autres noms globaux comme les schemas.
 
-     Utilisé dans /home/fnifnou/Documents/stageCoq/coq/tactics/ind_tables.ml 113
+     Utilisé dans [[/home/fnifnou/Documents/stageCoq/coq/tactics/ind_tables.ml::122][tactics/ind_tables.ml]] ligne 122
      dans local_lookup_scheme
 
      Utilisé dans indtables dans define_individual_scheme et define_mutual_scheme
      on ajoute, les schemes des types inductifs definis, aux side_effects puis on les retourne 
 
-     Utilisé dans /home/fnifnou/Documents/stageCoq/coq/tactics/ind_tables 99
+     Utilisé dans [[/home/fnifnou/Documents/stageCoq/coq/tactics/ind_tables.ml::108][tactics/ind_tables.ml]] ligne 108
      dans redeclare_schemes
      Permet si le lookup_scheme kind ind retourne None, de chercher le scheme dans la cMap de side_effects
      
@@ -675,7 +674,7 @@ PHOTO
 clé(string) -> string list * sort.family option
 suffix(string) -> pattern "._rect"
 
-Scheme Inductiv_for_sort InType -> SchemeInductiv, Some InType -> "_rest"
+Scheme Inductiv_for_sort InType -> Scheme Inductiv, Some InType -> "_rest"
 
 declare_mutual_scheme_object(["Elpi";"Param1"],None)
                             (["Induction"],Some InType) -> "._rect"
@@ -842,21 +841,21 @@ Register Scheme nat_rect as rec_dep for hoho.
 
 ** TODO indschemes 
 
-- [ ] None -> Sort Type
+- [X] None -> Sort Type
 indschemes.ml
 none -> comporte comme type qd y a pas de Sort sch_sort
 371 375
 
-- [ ] do_scheme va bcp changer, il restera plus que do_mutual_scheme
+- [ ] do_scheme va bcp changer, il restera plus que do_mutual_induction_scheme
 et on va supprimer do_scheme_equality
 
 modif eqdecscheme pour modifier la depedance et ajouter beq
 
-do mutual induction scheme  disparait car géré automatiquement par indtables.
+do_mutual_induction_scheme  disparait car géré automatiquement par ind_tables.
 verifier les msg
 
-declare_beq_scheme_gen devient declare scheme gen
-define mutual scheme : c est just ca que va faire do scheme, avec peut etre le try declare scheme autour.
+declare_beq_scheme_gen devient declare_scheme_gen
+define_mutual_scheme : c est just ca que va faire do_scheme, avec peut etre le try de declare_scheme autour.
 
 - [ ] supprimer make_suff et rendre suff obligatoir
 key = string list avec maj
@@ -867,17 +866,17 @@ ind_tables.ml ligne 188 : define_individual_scheme_base : use of suff
 
 - [ ] supprimer sch_isdep, sch_isrec, scheme_suffix_gen, name_and_process_scheme
 
-** indtables
+** DOING ind_tables
 
 - [ ] clef de la table devient (string list * Term.sort_familly option) etc
-(pour supprimer isdep)
+(pour supprimer is_dep?)
 
-- [ ] refaire tous les appelles à declare_individual_scheme dans
+- [X] refaire tous les appelles à declare_individual_scheme dans
 eqscheme, elimscheme, auto ind decl
 
 ** Questions 
 
-1) Probleme pour designer un schema par une string list plutot qu'un qualid
+1) 
 
 2) indschemes : isrec et isdep
    on peut dire qu'il faut les passer en parametre de declare_individual_scheme_object ? 
@@ -886,4 +885,65 @@ eqscheme, elimscheme, auto ind decl
 
 3) 
 
-4) 
+4)
+ 
+* solo 5
+
+- [ ] vernacexpr ligne 249 : 
+supprimer scheme_type et equality_sheme_type
+
+- [ ] trois manieres de CREER les schemas : 
+1) Création via la commande Scheme
+  Scheme Induction/Minimality/Case/Elimination for sort (hard-codé, à faire disparaître pour utiliser la table)
+    -> do_scheme
+    -> do_mutual_induction_scheme
+       dispatch pour savoir le "ind"/"rec"/"rect", si "case" ou "rec", si dep ou nodep
+    -> Indrec.build_mutual_induction_scheme/Indrec.build_case_analysis_scheme
+       -> Indrec.mis_make_indrec
+    -> sous-fonction declare
+    -> define
+    -> Declare.declare_constant
+2) Scheme Boolean Equality/Scheme Equality
+    -> do_scheme_equality
+    -> declare_beq_scheme
+    -> declare_beq_scheme_gen
+    -> Ind_tables.define_mutual_scheme (fait la sélection Auto_ind_decl.beq_scheme_kind ("beq"))
+3) Création à la volée en même temps que Inductif
+  -> Indschemes.declare_default_schemes
+  Pour les schémas d'induction/analyse de cas
+    -> declare_induction_schemes
+    -> declare_one_induction_scheme
+    -> *Ind_tables.define_individual_scheme* (fait une sélection parmi rect_dep, rec_dep, ...)
+  Pour les autres schémas, Boolean, etc.
+    -> try_declare_beq_scheme (try_declare_eq_decidability, declare_congr_scheme, ...)
+    -> declare_beq_scheme_gen
+    -> *Ind_tables.define_mutual_scheme*
+
+Enregistrement des manières de créer un schéma
+- dans *Ind_tables.declare_mutual_scheme_object*/*Ind_tables.declare_individual_scheme_object*
+
+Listes des schémas enregistrés
+- Elimschemes.rect_dep
+  -> build_induction_scheme_in_type
+  -> Indrec.build_induction_scheme
+  -> Indrec.mis_make_indrec
+- Elimschemes.rec_dep
+- ...
+- Eqschemes.sym_internal
+- ...
+
+
+========================
+La premiere maniere de creer est hard-codé, il faut maintenant la faire utiliser la table etc comme la deuxieme et troisieme maniere de faire
+
+
+changer dans elimscheme tous les 
+["rect";"dep"] -> (["Induction"] , Some InType)
+["rec";"dep"]  -> (["Induction"] , Some InSet)
+etc
+et changer le suff en obligatoire
+
+
+1) rajouter sort dans clef
+2) changer dans elimscheme les clefs
+3) supprimer tout le code hard-codé
