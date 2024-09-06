@@ -57,12 +57,12 @@ let scheme_object_table =
 
 let key_str key = String.concat "_" key
     
-let make_suff key =
-  (function
-     | None -> (key_str key)
-     | Some id -> (Id.to_string id) ^ "_" ^ (key_str key))
+(* let make_suff key = *)
+(*   (function *)
+(*      | None -> (key_str key) *)
+(*      | Some id -> (Id.to_string id) ^ "_" ^ (key_str key)) *)
 
-let declare_scheme_object key ?(suff=(make_suff key)) f =
+let declare_scheme_object key suff f =
   let () =
     if not (Id.is_valid ("ind_" ^ suff None)) then
       CErrors.user_err Pp.(str ("Illegal induction scheme suffix: " ^ suff None))
@@ -75,15 +75,15 @@ let declare_scheme_object key ?(suff=(make_suff key)) f =
     key
   end
 
-let declare_mutual_scheme_object key ?suff ?deps f =
-  declare_scheme_object key ?suff (MutualSchemeFunction (f, deps))
+let declare_mutual_scheme_object key suff ?deps f =
+  declare_scheme_object key suff (MutualSchemeFunction (f, deps))
 
-let declare_individual_scheme_object key ?suff ?deps f =
-  declare_scheme_object key ?suff (IndividualSchemeFunction (f, deps))
+let declare_individual_scheme_object key suff ?deps f =
+  declare_scheme_object key suff (IndividualSchemeFunction (f, deps))
 
 let is_declared_scheme_object key =
-  let tmp = String.split_on_char '_' key in
-  Hashtbl.mem scheme_object_table tmp
+  (* let tmp = String.split_on_char '_' key in *)
+  Hashtbl.mem scheme_object_table key
 
 let scheme_kind_name (key : _ scheme_kind) : string list = key
 
