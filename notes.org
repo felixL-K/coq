@@ -888,11 +888,12 @@ eqscheme, elimscheme, auto ind decl
 4)
  
 * solo 5
+** Supprimer scheme_type et equality_sheme_type
 
-- [ ] vernacexpr ligne 249 : 
-supprimer scheme_type et equality_sheme_type
+ vernacexpr ligne 249 
 
-- [ ] trois manieres de CREER les schemas : 
+** 3 manieres de CREER les schemas : 
+
 1) Création via la commande Scheme
   Scheme Induction/Minimality/Case/Elimination for sort (hard-codé, à faire disparaître pour utiliser la table)
     -> do_scheme
@@ -933,7 +934,6 @@ Listes des schémas enregistrés
 - ...
 
 
-========================
 La premiere maniere de creer est hard-codé, il faut maintenant la faire utiliser la table etc comme la deuxieme et troisieme maniere de faire
 
 
@@ -943,10 +943,10 @@ changer dans elimscheme tous les
 etc
 et changer le suff en obligatoire
 
-
-1) rajouter sort dans clef
-2) changer dans elimscheme les clefs
-3) supprimer tout le code hard-codé
+** Rajouter sort dans clef
+** Changer dans elimscheme/eqscheme/etc les clefs
+** Supprimer tout le code hard-codé
+** Schemes
 
 #+begin_src coq
 Unset Elimination Schemes.
@@ -977,6 +977,7 @@ Scheme Equality for nat.         (* nat_beq && nat_eq_dec *)
 Scheme Boolean Equality for nat. 
 #+end_src
 
+** RegisterScheme
 vernacentries ligne 2113 / 2125
 gvernac mlg ligne 290
 
@@ -986,7 +987,6 @@ Inductive nat : Set :=  O : nat | S : nat -> nat.
 Register Scheme nat_rect as rec_dep for hoho.
 #+end_src
 
+** CList.Map
 
-
-===================
 grep -rn "CList.Map" *
