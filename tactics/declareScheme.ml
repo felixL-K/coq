@@ -28,7 +28,7 @@ let subst_one_scheme subst (ind,const) =
 let subst_scheme (subst,(kind,l)) =
   (kind, subst_one_scheme subst l)
 
-let inScheme : Libobject.locality * (string list * (inductive * Constant.t)) -> Libobject.obj =
+let inScheme : Libobject.locality * ((string list * string option) * (inductive * Constant.t)) -> Libobject.obj =
   let open Libobject in
   declare_object @@ object_with_locality "SCHEME"
     ~cache:cache_scheme

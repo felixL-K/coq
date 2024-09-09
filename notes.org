@@ -947,3 +947,46 @@ et changer le suff en obligatoire
 1) rajouter sort dans clef
 2) changer dans elimscheme les clefs
 3) supprimer tout le code hard-codé
+
+#+begin_src coq
+Unset Elimination Schemes.
+
+Inductive nat : Set :=  O : nat | S : nat -> nat.
+
+Scheme Induction for nat Sort Type.      (* nat_rect *)
+Scheme Induction for nat Sort Prop.         (* nat_ind *)
+Scheme Induction for nat Sort SProp.   (* nat_inds *)
+Scheme Induction for nat Sort Set.      (* nat_rec *)
+
+Scheme Minimality for nat Sort Type.   (* nat_rect_nodep *)
+Scheme Minimality for nat Sort Prop.        (* nat_ind_nodep *)
+Scheme Minimality for nat Sort SProp.  (* nat_inds_nodep *)
+Scheme Minimality for nat Sort Set.      (* nat_rec_nodep *)
+
+Scheme Elimination for nat Sort Type.    (* nat_caset *)
+Scheme Elimination for nat Sort Prop.         (* nat_case *)
+Scheme Elimination for nat Sort SProp.   (* nat_cases *)
+(* Scheme Elimination for nat Sort Set. == nat_case *)
+
+Scheme Case for nat Sort Type.    (* nat_caset_nodep *)
+Scheme Case for nat Sort Prop.         (* nat_case_nodep *)
+Scheme Case for nat Sort SProp.  (* nat_cases_nodep *)
+(* Scheme Case for nat Sort Set. == nat_case_nodep *)
+
+Scheme Equality for nat.         (* nat_beq && nat_eq_dec *)
+Scheme Boolean Equality for nat. 
+#+end_src
+
+vernacentries ligne 2113 / 2125
+gvernac mlg ligne 290
+
+Gros probleme avec les 
+#+begin_src coq
+Inductive nat : Set :=  O : nat | S : nat -> nat.
+Register Scheme nat_rect as rec_dep for hoho.
+#+end_src
+
+
+
+===================
+grep -rn "CList.Map" *

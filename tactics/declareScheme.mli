@@ -10,6 +10,6 @@
 
 open Names
 
-val declare_scheme : Libobject.locality -> string list -> (inductive * Constant.t) -> unit
-val lookup_scheme : string list -> inductive -> Constant.t
+val declare_scheme : Libobject.locality -> (string list * string option) -> (inductive * Constant.t) -> unit
+val lookup_scheme : (string list * string option) -> inductive -> Constant.t
 val all_schemes : unit -> Constant.t CList.Map.t Indmap.t
