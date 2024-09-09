@@ -104,52 +104,52 @@ let optimize_non_type_induction_scheme kind dep sort env _handle ind =
 (* (Induction, Some inType) 
 enleve dep dans suff *)
 let rect_dep =
-  declare_individual_scheme_object (["Induction"], Some "InType")
+  declare_individual_scheme_object (["Induction"], Some InType)
     (fun id -> match id with None -> "rect_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "rect_dep")
     (fun env _ x -> build_induction_scheme_in_type env true InType x)
 
 (* (Induction, Some inSet) 
 enleve dep dans suff *)
 let rec_dep =
-  declare_individual_scheme_object (["Induction"], Some "InSet")
+  declare_individual_scheme_object (["Induction"], Some InSet)
     (fun id -> match id with None -> "rec_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "rec_dep")
     (optimize_non_type_induction_scheme rect_dep true InSet)
 
 (* (Induction, Some inProp) *)
 let ind_dep =
-  declare_individual_scheme_object (["Induction"], Some "InProp")
+  declare_individual_scheme_object (["Induction"], Some InProp)
     (fun id -> match id with None -> "ind_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "ind_dep")
     (optimize_non_type_induction_scheme rec_dep true InProp)
 
 (* (Induction, Some inSProp) *)
 let sind_dep =
-  declare_individual_scheme_object (["Induction"], Some "InSProp")
+  declare_individual_scheme_object (["Induction"], Some InSProp)
     (fun id -> match id with None -> "sind_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "sind_dep")
     (fun env _ x -> build_induction_scheme_in_type env true InSProp x)
 
 (* (Minimality, Some inType) *)
 let rect_nodep =
-  declare_individual_scheme_object (["Minimality"], Some "InType")
+  declare_individual_scheme_object (["Minimality"], Some InType)
     (fun id -> match id with None -> "rect_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "rect_nodep")
     (fun env _ x -> build_induction_scheme_in_type env false InType x)
 
 (* (Minimality, Some inSet) *)
 let rec_nodep =
-  declare_individual_scheme_object (["Minimality"], Some "InSet")
+  declare_individual_scheme_object (["Minimality"], Some InSet)
     (fun id -> match id with None -> "rec_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "rec_nodep")
     (optimize_non_type_induction_scheme rect_nodep false InSet)
 
 (* (Minimality, Some inProp) 
 enleve nodep dans suff *)
 let ind_nodep =
-  declare_individual_scheme_object (["Minimality"], Some "InProp")
+  declare_individual_scheme_object (["Minimality"], Some InProp)
     (fun id -> match id with None -> "ind_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "ind_nodep")
     (optimize_non_type_induction_scheme rec_nodep false InProp)
 
 (* (Minimality, Some inSProp) 
 enleve nodep dans suff *)
 let sind_nodep =
-  declare_individual_scheme_object (["Minimality"], Some "InSProp")
+  declare_individual_scheme_object (["Minimality"], Some InSProp)
     (fun id -> match id with None -> "sind_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "sind_nodep")
     (fun env _ x -> build_induction_scheme_in_type env false InSProp x)
     
@@ -177,25 +177,25 @@ let build_case_analysis_scheme_in_type env dep sort ind =
 
 (* Elimination, inType *)
 let case_dep =
-  declare_individual_scheme_object (["Elimination"], Some "InType")
+  declare_individual_scheme_object (["Elimination"], Some InType)
     (fun id -> match id with None -> "case_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "case_dep")
     (fun env _ x -> build_case_analysis_scheme_in_type env true InType x)
 
 (* Case, inType*)
 let case_nodep =
-  declare_individual_scheme_object (["Case"], Some "InType")
+  declare_individual_scheme_object (["Case"], Some InType)
     (fun id -> match id with None -> "case_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "case_nodep")
     (fun env _ x -> build_case_analysis_scheme_in_type env false InType x)
 
 (* Elimination, inProp*)
 let casep_dep =
-  declare_individual_scheme_object (["Elimination"], Some "InProp")
+  declare_individual_scheme_object (["Elimination"], Some InProp)
     (fun id -> match id with None -> "casep_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "casep_dep")
     (fun env _ x -> build_case_analysis_scheme_in_type env true InProp x)
 
 (* Case, InProp *)
 let casep_nodep =
-  declare_individual_scheme_object (["Case"], Some "InProp")
+  declare_individual_scheme_object (["Case"], Some InProp)
     (fun id -> match id with None -> "casep_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "casep_nodep")
     (fun env _ x -> build_case_analysis_scheme_in_type env false InProp x)
-
+    

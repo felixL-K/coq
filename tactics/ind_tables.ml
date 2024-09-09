@@ -31,13 +31,13 @@ type mutual_scheme_object_function =
 type individual_scheme_object_function =
   Environ.env -> handle -> inductive -> constr Evd.in_ustate
 
-type 'a scheme_kind = (string list * string option)
+type 'a scheme_kind = (string list * Sorts.family option)
 
-let pr_scheme_kind (kind : string list * string option) = 
+let pr_scheme_kind (kind : string list * Sorts.family option) = 
   let (str_list, opt_str) = kind in
   let pr_list = Pp.prlist Pp.str str_list in
   let pr_option = match opt_str with
-    | Some s -> Pp.str (" (" ^ s ^ ")")
+    | Some s -> Pp.str (" (" ^ (Sorts.family_to_str s) ^ ")")
     | None -> Pp.str " (None)"
   in
   Pp.(pr_list ++ pr_option)
@@ -59,14 +59,14 @@ type scheme_object_function =
 (* Ne contient que les schemes creer au lancement de coqtop (ou autre)
    On n'y ajoute pas les schemes des inductifs def par l'utilisateur. *)
 let scheme_object_table =
-  (Hashtbl.create 17 : ((string list * string option), (Names.Id.t option -> string) * scheme_object_function) Hashtbl.t)
+  (Hashtbl.create 17 : ((string list * Sorts.family option), (Names.Id.t option -> string) * scheme_object_function) Hashtbl.t)
 (* (Hashtbl.create 17 : (string, string * scheme_object_function) Hashtbl.t) *)
 
-let key_str (key : string list * string option) =
+let key_str key =
   let (str_list, opt_str) = key in
   let str_list = String.concat " " str_list in
   let str_option = match opt_str with
-    | Some s -> " (" ^ s ^ ")"
+    | Some s -> " (" ^ (Sorts.family_to_str s) ^ ")"
     | None -> " (None)"
   in
   str_list ^ str_option
@@ -100,7 +100,7 @@ let is_declared_scheme_object key =
   (* let tmp = String.split_on_char '_' key in *)
   Hashtbl.mem scheme_object_table key
 
-let scheme_kind_name (key : _ scheme_kind) : string list * string option = key
+let scheme_kind_name (key : _ scheme_kind) : string list * Sorts.family option = key
 
 (**********************************************************************)
 (* Defining/retrieving schemes *)
@@ -127,12 +127,12 @@ let redeclare_schemes eff =
       let _ = DeclareScheme.lookup_scheme kind ind in
       accu
     with Not_found ->
-      let old = try CList.Map.find kind accu with Not_found -> [] in
-      CList.Map.add kind ((ind, c) :: old) accu
+      let old = try Sorts.Map.find kind accu with Not_found -> [] in
+      Sorts.Map.add kind ((ind, c) :: old) accu
   in
-  let schemes = Cmap.fold fold eff.Evd.seff_roles CList.Map.empty in
+  let schemes = Cmap.fold fold eff.Evd.seff_roles Sorts.Map.empty in
   let iter kind defs = List.iter (DeclareScheme.declare_scheme SuperGlobal kind) defs in
-  CList.Map.iter iter schemes
+  Sorts.Map.iter iter schemes
 
 let local_lookup_scheme eff kind ind = match lookup_scheme kind ind with
 | Some _ as ans -> ans
@@ -140,7 +140,7 @@ let local_lookup_scheme eff kind ind = match lookup_scheme kind ind with
   let exception Found of Constant.t in
   let iter c role = match role with
     | Evd.Schema (i, k) ->
-      let tmp = if (CList.compareT k kind == 0) then true else false in
+      let tmp = if (Sorts.compareT k kind == 0) then true else false in
       if tmp && Ind.UserOrd.equal i ind then raise (Found c)
   in
   (* Inefficient O(n), but the number of locally declared schemes is small and

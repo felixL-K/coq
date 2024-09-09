@@ -1007,26 +1007,3 @@ module type MonoS = sig
   val mem_assoc_sym : elt -> ('a * elt) list -> bool
 end
 
-
-let compareT (l1,s1) (l2,s2) =
-    let listc = compare Stdlib.compare l1 l2 in
-    if (listc == 0)
-    then match s1,s2 with
-      | None, None -> 0
-      | Some _, None
-      | None, Some _ -> 1
-      | Some x, Some y -> Stdlib.compare x y
-    else listc
-
-
-module Self1 =
-struct
-  type t = string list * string option
-  let compare = compareT
-end
-
-module Set = CSet.Make(Self1)
-module Map = CMap.Make(Self1)
-
-let _tmp = Map.singleton
-

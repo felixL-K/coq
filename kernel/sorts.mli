@@ -191,3 +191,11 @@ type pattern =
   | PSProp | PSSProp | PSSet | PSType of int option | PSQSort of int option * int option
 
 val pattern_match : pattern -> t -> ('t, Quality.t, Univ.Level.t) Partial_subst.t -> ('t, Quality.t, Univ.Level.t) Partial_subst.t option
+
+
+val compareT : (string list * family option) -> (string list * family option) -> int
+  
+module Set : CSet.ExtS with type elt = (string list * family option)
+module Map : CMap.ExtS with type key = (string list * family option) and module Set := Set
+
+val family_to_str : family -> string 
