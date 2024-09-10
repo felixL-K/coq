@@ -888,11 +888,11 @@ eqscheme, elimscheme, auto ind decl
 4)
  
 * solo 5
-** Supprimer scheme_type et equality_sheme_type
+** TODO Supprimer scheme_type et equality_sheme_type
 
  vernacexpr ligne 249 
 
-** 3 manieres de CREER les schemas : 
+** TODO 3 manieres de CREER les schemas : 
 
 1) Création via la commande Scheme
   Scheme Induction/Minimality/Case/Elimination for sort (hard-codé, à faire disparaître pour utiliser la table)
@@ -921,7 +921,7 @@ eqscheme, elimscheme, auto ind decl
     -> *Ind_tables.define_mutual_scheme*
 
 Enregistrement des manières de créer un schéma
-- dans *Ind_tables.declare_mutual_scheme_object*/*Ind_tables.declare_individual_scheme_object*
+- dans *Ind_tables.declare_mutual_scheme_object* / *Ind_tables.declare_individual_scheme_object*
 
 Listes des schémas enregistrés
 - Elimschemes.rect_dep
@@ -936,16 +936,41 @@ Listes des schémas enregistrés
 
 La premiere maniere de creer est hard-codé, il faut maintenant la faire utiliser la table etc comme la deuxieme et troisieme maniere de faire
 
+===============================
 
-changer dans elimscheme tous les 
+Dans indSchemes.ml : 
+
+- beq scheme : 
+    declare_beq_scheme -> declare_beq_scheme_with -> 
+    try_declare_scheme  define_mutual_scheme  beq_scheme_kind
+- Case scheme : 
+    Global.lookup_inductive ind
+    
+===============================
+
+- Parsing : Scheme Induction for nat Sort Type.
+-  
+
+** TODO Supprimer tout le code hard-codé
+** DONE Rajouter sort dans clef
+
+Changer dans elimscheme/eqscheme/etc les clefs
 ["rect";"dep"] -> (["Induction"] , Some InType)
 ["rec";"dep"]  -> (["Induction"] , Some InSet)
 etc
 et changer le suff en obligatoire
 
-** Rajouter sort dans clef
-** Changer dans elimscheme/eqscheme/etc les clefs
-** Supprimer tout le code hard-codé
+** DOING RegisterScheme
+
+vernacentries ligne 2113 / 2125
+gvernac mlg ligne 290
+
+Gros probleme avec les 
+#+begin_src coq
+Inductive nat : Set :=  O : nat | S : nat -> nat.
+Register Scheme nat_rect as rec_dep for hoho.
+#+end_src
+
 ** Schemes
 
 #+begin_src coq
@@ -975,16 +1000,6 @@ Scheme Case for nat Sort SProp.  (* nat_cases_nodep *)
 
 Scheme Equality for nat.         (* nat_beq && nat_eq_dec *)
 Scheme Boolean Equality for nat. 
-#+end_src
-
-** RegisterScheme
-vernacentries ligne 2113 / 2125
-gvernac mlg ligne 290
-
-Gros probleme avec les 
-#+begin_src coq
-Inductive nat : Set :=  O : nat | S : nat -> nat.
-Register Scheme nat_rect as rec_dep for hoho.
 #+end_src
 
 ** CList.Map
