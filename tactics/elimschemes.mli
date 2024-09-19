@@ -14,6 +14,15 @@ open Ind_tables
 
 val elim_scheme : dep:bool -> to_kind:Sorts.family -> individual scheme_kind
 
+val mutual_rect_dep : mutual scheme_kind
+val mutual_rec_dep : mutual scheme_kind
+val mutual_ind_dep : mutual scheme_kind
+val mutual_sind_dep : mutual scheme_kind
+val mutual_rect_nodep : mutual scheme_kind
+val mutual_rec_nodep : mutual scheme_kind
+val mutual_ind_nodep : mutual scheme_kind
+val mutual_sind_nodep : mutual scheme_kind
+
 (** Case analysis schemes *)
 
 val case_dep : individual scheme_kind

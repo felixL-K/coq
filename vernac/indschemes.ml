@@ -28,7 +28,7 @@ open Eqschemes
 open Elimschemes
 
 (** Data of an inductive scheme with name resolved *)
-type resolved_scheme = Names.Id.t CAst.t * string list * Indrec.dep_flag * Names.inductive * Sorts.family
+type resolved_scheme = Names.Id.t CAst.t * string list * Indrec.dep_flag * Names.inductive * Sorts.family option
 
 (** flag for internal message display *)
 type internal_flag =
@@ -368,8 +368,8 @@ let smart_ind qid =
    eliminator and its sort. *)
 let name_and_process_scheme env = function
   | (Some id, {sch_type; sch_qualid; sch_sort}) ->
-    let tmp = match sch_sort with Some s -> s | None -> InType in
-    (id, sch_type, sch_isdep sch_type, smart_ind sch_qualid, tmp)
+    (* let tmp = match sch_sort with Some s -> s | None -> InType in *)
+    (id, sch_type, sch_isdep sch_type, smart_ind sch_qualid, sch_sort)
   | (None, ({sch_type; sch_qualid; sch_sort} as sch)) ->
     (* If no name has been provided, we build one from the types of the ind requested *)
     let ind = smart_ind sch_qualid in
@@ -380,52 +380,21 @@ let name_and_process_scheme env = function
     let suffix = scheme_suffix_gen sch sort_of_ind in
     let newid = Nameops.add_suffix (Nametab.basename_of_global (Names.GlobRef.IndRef ind)) suffix in
     let newref = CAst.make newid in
-    let tmp = match sch_sort with Some s -> s | None -> InType in
-    (newref,sch_type, sch_isdep sch_type, ind, tmp)
+    (* let tmp = match sch_sort with Some s -> s | None -> InType in *)
+    (newref,sch_type, sch_isdep sch_type, ind, sch_sort)
 
 let do_mutual_induction_scheme ?(force_mutual=false) env ?(isrec=true) l =
-  let sigma, inst =
-    let _,_,_,ind,_ = match l with | x::_ -> x | [] -> assert false in
-    let _, ctx = Typeops.type_of_global_in_context env (Names.GlobRef.IndRef ind) in
-    let u, ctx = UnivGen.fresh_instance_from ctx None in
-    let u = EConstr.EInstance.make u in
-    let sigma = Evd.from_ctx (UState.of_context_set ctx) in
-    sigma, u
-  in
-  let sigma, lrecspec =
-    List.fold_left_map (fun sigma (_,kind,dep,ind,sort) ->
-        let sigma, sort = Evd.fresh_sort_in_family ~rigid:UnivRigid sigma sort in
-        (sigma, ((ind,inst),dep,sort)))
-      sigma
-      l
-  in
-  let sigma, listdecl =
-    if isrec then Indrec.build_mutual_induction_scheme env sigma ~force_mutual lrecspec
-    else
-      List.fold_left_map (fun sigma (ind,dep,sort) ->
-          let sigma, c = Indrec.build_case_analysis_scheme env sigma ind dep sort in
-          let c, _ = Indrec.eval_case_analysis c in
-          sigma, c)
-        sigma lrecspec
-  in
-  let poly =
-    (* NB: build_mutual_induction_scheme forces nonempty list of mutual inductives
-       (force_mutual is about the generated schemes) *)
-    let _,_,_,ind,_ = List.hd l in
-    Global.is_polymorphic (Names.GlobRef.IndRef ind)
-  in
-  let declare decl ({CAst.v=fi},kind,dep,ind,sort) =
-    let decltype = Retyping.get_type_of env sigma decl in
-    let decltype = EConstr.to_constr sigma decltype in
-    let decl = EConstr.to_constr sigma decl in
-    let cst = define ~poly fi sigma decl (Some decltype) in
-    (* TODO locality *)
-    DeclareScheme.declare_scheme SuperGlobal (kind,Some sort) (ind,cst)
-  in
-  let () = List.iter2 declare listdecl l in
-  let lrecnames = List.map (fun ({CAst.v},_,_,_,_) -> v) l in
-  Declare.fixpoint_message None lrecnames
+  match l with
+  | [({CAst.v},kind,dep,ind,sort)] ->
+    if List.length l = 1 then
+      define_individual_scheme (scheme_key (kind,sort,false)) (Some v) ind
+  | ({CAst.v},kind,dep,(mutind,i),sort)::lrecspec ->
+    let lnames = List.map (fun ({CAst.v},kind,dep,(mutind,j),sort) -> (j,v)) l in
+    define_mutual_scheme (scheme_key (kind,sort,true)) lnames mutind
+  | _ -> (failwith "do_mutual_induction_scheme expects a non empty list of inductive types.")
 
+
+                         
 let do_scheme_equality ?locmap sch id =
   let mind,_ = smart_ind id in
   let dec = match sch with SchemeBooleanEquality -> false | SchemeEquality -> true in

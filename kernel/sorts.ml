@@ -501,20 +501,23 @@ let pattern_match ps s qusubst =
   | (PSProp | PSSProp | PSSet | PSType _), _ -> None
 
 
-let compareT (l1,s1) (l2,s2) =
+let compareT (l1,s1,b1) (l2,s2,b2) =
     let listc = CList.compare Stdlib.compare l1 l2 in
     if (listc == 0)
     then match s1,s2 with
-      | None, None -> 0
+      | None, None -> if b1 = b2 then 0 else 1
       | Some _, None
       | None, Some _ -> 1
-      | Some x, Some y -> if x = y then 0 else 1
+      | Some x, Some y ->
+        if x = y
+        then if b1 = b2 then 0 else 1
+        else 1
     else listc
 
 
 module Self1 =
 struct
-  type t = string list * family option
+  type t = string list * family option * bool
   let compare = compareT
 end
 

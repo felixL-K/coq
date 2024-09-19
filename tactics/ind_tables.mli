@@ -45,23 +45,25 @@ type individual_scheme_object_function =
     inductive's name.
 *)
 
-val declare_mutual_scheme_object : string list * Sorts.family option ->
+val declare_mutual_scheme_object : string list * Sorts.family option * bool ->
   (Names.Id.t option -> string) ->
   ?deps:(Environ.env -> MutInd.t -> scheme_dependency list) ->
   mutual_scheme_object_function -> mutual scheme_kind
 
-val declare_individual_scheme_object : string list * Sorts.family option ->
+val declare_individual_scheme_object : string list * Sorts.family option * bool ->
   (Names.Id.t option -> string) ->
   ?deps:(Environ.env -> inductive -> scheme_dependency list) ->
   individual_scheme_object_function ->
   individual scheme_kind
 
-val is_declared_scheme_object : string list * Sorts.family option -> bool
+val is_declared_scheme_object : string list * Sorts.family option * bool -> bool
 (** Is the string used as the name of a [scheme_kind]? *)
 
-val scheme_kind_name : _ scheme_kind -> string list * Sorts.family option
+val scheme_kind_name : _ scheme_kind -> string list * Sorts.family option * bool
 (** Name of a [scheme_kind]. Can be used to register with DeclareScheme. *)
 
+val scheme_key : string list * Sorts.family option * bool -> _ scheme_kind
+    
 (** Force generation of a (mutually) scheme with possibly user-level names *)
 
 val define_individual_scheme : ?loc:Loc.t -> individual scheme_kind ->

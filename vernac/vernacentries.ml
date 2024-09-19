@@ -364,7 +364,8 @@ let print_registered_schemes () =
   in
   let pr_schemes_of_ind (ind, schemes) =
     let tmp = Sorts.Map.bindings schemes in
-    let tmpp = List.map (fun ((a,c),b) ->
+    let tmpp = List.map (fun ((a,c,d),b) ->
+        (* /!\ will print 2 times if individual and mutual (represented by bool d here) are defined for a given scheme *)
         let s1 = String.concat " " a in
         let s2 = match c with
           | Some s -> " (" ^ (Sorts.family_to_str s) ^ ")"
@@ -2136,13 +2137,13 @@ let vernac_register ~atts qid r =
     in
     (* let scheme_kind_s = Libnames.string_of_qualid scheme_kind in *)
     (* let scheme_kind_s_list = String.split_on_char '_' scheme_kind_s in *)
-    let () = if not (Ind_tables.is_declared_scheme_object (scheme_kind, Some InType)) then
+    let () = if not (Ind_tables.is_declared_scheme_object (scheme_kind, Some InType,false)) then
         (* warn_unknown_scheme_kind ?loc:scheme_kind.loc scheme_kind *)
         CErrors.user_err Pp.(str ("unknown scheme kind " ^ (String.concat " " scheme_kind)))
     in
     let ind = Smartlocate.global_inductive_with_alias inductive in
     Dumpglob.add_glob ?loc:inductive.loc (IndRef ind);
-    DeclareScheme.declare_scheme local (scheme_kind, Some InType) (ind,gr)
+    DeclareScheme.declare_scheme local (scheme_kind, Some InType,false) (ind,gr)
 
 let vernac_library_attributes atts =
   if Global.is_curmod_library () && not (Lib.sections_are_opened ()) then

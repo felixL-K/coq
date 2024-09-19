@@ -193,9 +193,9 @@ type pattern =
 val pattern_match : pattern -> t -> ('t, Quality.t, Univ.Level.t) Partial_subst.t -> ('t, Quality.t, Univ.Level.t) Partial_subst.t option
 
 
-val compareT : (string list * family option) -> (string list * family option) -> int
+val compareT : (string list * family option * bool) -> (string list * family option * bool) -> int
   
-module Set : CSet.ExtS with type elt = (string list * family option)
-module Map : CMap.ExtS with type key = (string list * family option) and module Set := Set
+module Set : CSet.ExtS with type elt = (string list * family option * bool)
+module Map : CMap.ExtS with type key = (string list * family option * bool) and module Set := Set
 
 val family_to_str : family -> string 

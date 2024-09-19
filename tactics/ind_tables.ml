@@ -31,10 +31,10 @@ type mutual_scheme_object_function =
 type individual_scheme_object_function =
   Environ.env -> handle -> inductive -> constr Evd.in_ustate
 
-type 'a scheme_kind = (string list * Sorts.family option)
+type 'a scheme_kind = (string list * Sorts.family option * bool)
 
-let pr_scheme_kind (kind : string list * Sorts.family option) = 
-  let (str_list, opt_str) = kind in
+let pr_scheme_kind (kind : string list * Sorts.family option * bool) = 
+  let (str_list, opt_str,b) = kind in
   let pr_list = Pp.prlist Pp.str str_list in
   let pr_option = match opt_str with
     | Some s -> Pp.str (" (" ^ (Sorts.family_to_str s) ^ ")")
@@ -59,11 +59,11 @@ type scheme_object_function =
 (* Ne contient que les schemes creer au lancement de coqtop (ou autre)
    On n'y ajoute pas les schemes des inductifs def par l'utilisateur. *)
 let scheme_object_table =
-  (Hashtbl.create 17 : ((string list * Sorts.family option), (Names.Id.t option -> string) * scheme_object_function) Hashtbl.t)
+  (Hashtbl.create 17 : ((string list * Sorts.family option * bool), (Names.Id.t option -> string) * scheme_object_function) Hashtbl.t)
 (* (Hashtbl.create 17 : (string, string * scheme_object_function) Hashtbl.t) *)
 
 let key_str key =
-  let (str_list, opt_str) = key in
+  let (str_list, opt_str,b) = key in
   let str_list = String.concat " " str_list in
   let str_option = match opt_str with
     | Some s -> " (" ^ (Sorts.family_to_str s) ^ ")"
@@ -100,8 +100,10 @@ let is_declared_scheme_object key =
   (* let tmp = String.split_on_char '_' key in *)
   Hashtbl.mem scheme_object_table key
 
-let scheme_kind_name (key : _ scheme_kind) : string list * Sorts.family option = key
+let scheme_kind_name (key : _ scheme_kind) : string list * Sorts.family option * bool = key
 
+let scheme_key (key : string list * Sorts.family option * bool) : _ scheme_kind  = key
+  
 (**********************************************************************)
 (* Defining/retrieving schemes *)
 
