@@ -27,7 +27,7 @@ open Util
 type handle = Evd.side_effects
 
 type mutual_scheme_object_function =
-  Environ.env -> handle -> MutInd.t -> constr array Evd.in_ustate
+  Environ.env -> handle -> inductive list -> constr array Evd.in_ustate
 type individual_scheme_object_function =
   Environ.env -> handle -> inductive -> constr Evd.in_ustate
 
@@ -49,7 +49,7 @@ type individual
 type mutual
 
 type scheme_dependency =
-| SchemeMutualDep of MutInd.t * mutual scheme_kind
+| SchemeMutualDep of inductive list * mutual scheme_kind
 | SchemeIndividualDep of inductive * individual scheme_kind
 
 type scheme_object_function =
@@ -217,9 +217,10 @@ and define_individual_scheme ?loc kind ~internal names (mind,i as ind) =
     define_individual_scheme_base ?loc kind s f ~internal names ind eff
 
 (* Assumes that dependencies are already defined *)
-and define_mutual_scheme_base ?(locmap=Locmap.default None) kind suff f ~internal names mind eff =
+and define_mutual_scheme_base ?(locmap=Locmap.default None) kind suff f ~internal names inds eff =
   (* FIXME: do not rely on the imperative modification of the global environment *)
-  let (cl, ctx) = f (Global.env ()) eff mind in
+  let mind = (fst (List.hd inds)) in
+  let (cl, ctx) = f (Global.env ()) eff inds in
   let mib = Global.lookup_mind mind in
   let ids = Array.init (Array.length mib.mind_packets) (fun i ->
       try Int.List.assoc i names
@@ -233,13 +234,14 @@ and define_mutual_scheme_base ?(locmap=Locmap.default None) kind suff f ~interna
   let (eff, consts) = Array.fold_left2_map_i fold eff ids cl in
   consts, eff
 
-and define_mutual_scheme ?locmap kind ~internal names mind =
+and define_mutual_scheme ?locmap kind ~internal names inds=
   match Hashtbl.find scheme_object_table kind with
   | _,IndividualSchemeFunction _ -> assert false
   | s,MutualSchemeFunction (f, deps) ->
+    let mind = (fst (List.hd inds)) in
     let deps = match deps with None -> [] | Some deps -> deps (Global.env ()) mind in
     let eff = List.fold_left (fun eff dep -> declare_scheme_dependence eff dep) Evd.empty_side_effects deps in
-    define_mutual_scheme_base ?locmap kind s f ~internal names mind eff
+    define_mutual_scheme_base ?locmap kind s f ~internal names inds eff
 
 and declare_scheme_dependence eff sd =
 match sd with
@@ -248,10 +250,10 @@ match sd with
   else
     let _, eff' = define_individual_scheme kind ~internal:true None ind in
     Evd.concat_side_effects eff' eff
-| SchemeMutualDep (mind, kind) ->
-  if local_check_scheme kind (mind, 0) eff then eff
+| SchemeMutualDep (inds, kind) ->
+  if local_check_scheme kind (List.hd inds) eff then eff
   else
-    let _, eff' = define_mutual_scheme kind ~internal:true [] mind in
+    let _, eff' = define_mutual_scheme kind ~internal:true [] inds in
     Evd.concat_side_effects eff' eff
 
 let find_scheme kind (mind,i as ind) =
@@ -271,7 +273,7 @@ let find_scheme kind (mind,i as ind) =
       | s,MutualSchemeFunction (f, deps) ->
         let deps = match deps with None -> [] | Some deps -> deps (Global.env ()) mind in
         let eff = List.fold_left (fun eff dep -> declare_scheme_dependence eff dep) Evd.empty_side_effects deps in
-        let ca, eff = define_mutual_scheme_base kind s f ~internal:true [] mind eff in
+        let ca, eff = define_mutual_scheme_base kind s f ~internal:true [] [mind,i] eff in
         Proofview.tclEFFECTS eff <*> Proofview.tclUNIT ca.(i)
     with Coqlib.NotFoundRef _ as e ->
       let e, info = Exninfo.capture e in

@@ -31,12 +31,13 @@ let build_induction_scheme_in_type env dep sort ind =
   let sigma, c = build_induction_scheme env sigma pind dep sort in
   EConstr.to_constr sigma c, Evd.ustate sigma
 
-let build_mutual_induction_scheme_in_type env dep sort ind =
+let build_mutual_induction_scheme_in_type env dep sort l =
   (* let sigma = Evd.from_env env in *)
   (* let sigma, pind = Evd.fresh_inductive_instance ~rigid:UState.univ_rigid env sigma ind in *)
   (* let pind = Util.on_snd EConstr.EInstance.make pind in *)
   (* let sigma, sort = Evd.fresh_sort_in_family ~rigid:UnivRigid sigma sort in *)
   (* let sigma, c = build_mutual_induction_scheme env sigma [pind,dep,sort] in *)
+  let ind,_ = match l with | x::_ -> x | [] -> assert false in
   let sigma, inst =
     let _, ctx = Typeops.type_of_global_in_context env (Names.GlobRef.IndRef (ind,0)) in
     let u, ctx = UnivGen.fresh_instance_from ctx None in
@@ -44,18 +45,19 @@ let build_mutual_induction_scheme_in_type env dep sort ind =
     let sigma = Evd.from_ctx (UState.of_context_set ctx) in
     sigma, u
   in
-  let mib = Environ.lookup_mind ind env in
-  let n = Array.length mib.mind_packets in
+  let n = List.length l in
   let sigma, lrecspec =
-    let rec loop i n sigma l =
-      if i>=n then (sigma,l)
+    let rec loop i n sigma ll =
+      if i>=n then (sigma,ll)
       else
         let new_sigma, new_sort = Evd.fresh_sort_in_family ~rigid:UnivRigid sigma sort in
-        let new_l = List.append l [(((ind,i),inst),dep,new_sort)] in
+        let (indd,ii) = List.nth l i in
+        let new_l = List.append ll [(((indd,ii),inst),dep,new_sort)] in
         loop (i + 1) n new_sigma new_l
     in
     loop 0 n sigma []
   in
+  (* let lrecspec = List.sort (fun (((ind,i),inst),dep,new_sort) (((ind',i'),inst'),dep',new_sort') -> i'-i ) lrecspec in *)
   let sigma, listdecl = Indrec.build_mutual_induction_scheme env sigma ~force_mutual:false lrecspec in
   let array = Array.of_list listdecl in
   let l = Array.map (fun x -> EConstr.to_constr sigma x) array in

@@ -184,13 +184,20 @@ let beq_scheme_msg mind =
     (List.init (Array.length mib.mind_packets) (fun i -> (mind,i)))
 
 let declare_beq_scheme_with ?locmap l kn =
-  try_declare_scheme (beq_scheme_msg kn) declare_beq_scheme_gen UserIndividualRequest l kn
+  try_declare_scheme (beq_scheme_msg kn) declare_beq_scheme_gen UserIndividualRequest l [kn,0]
 
 let try_declare_beq_scheme ?locmap kn =
   (* TODO: handle Fix, eventually handle
       proof-irrelevance; improve decidability by depending on decidability
       for the parameters rather than on the bl and lb properties *)
-  try_declare_scheme (beq_scheme_msg kn) declare_beq_scheme_gen UserAutomaticRequest [] kn
+  let mib = Global.lookup_mind kn in
+  let n = Array.length mib.mind_packets in
+  let rec mk_list l i =
+    if i >= n then l
+    else mk_list (List.append l [(kn,i)]) (i+1)
+  in
+  let l = mk_list [] 0 in
+  try_declare_scheme (beq_scheme_msg kn) declare_beq_scheme_gen UserAutomaticRequest [] l
 
 let declare_beq_scheme ?locmap mi = declare_beq_scheme_with ?locmap [] mi
 
@@ -267,7 +274,11 @@ let declare_induction_schemes ?(locmap=Locmap.default None) kn =
 let declare_eq_decidability_gen ?locmap names kn =
   let mib = Global.lookup_mind kn in
   if mib.mind_finite <> Declarations.CoFinite then
-    define_mutual_scheme ?locmap eq_dec_scheme_kind names kn
+    match locmap with
+    | None -> define_individual_scheme eq_dec_scheme_kind names (kn,0)
+    | Some l ->
+      let loc = Ind_tables.Locmap.lookup ~locmap:l (kn,0) in
+      define_individual_scheme ?loc eq_dec_scheme_kind names (kn,0)
 
 let eq_dec_scheme_msg ind = (* TODO: mutual inductive case *)
   str "Decidable equality on " ++ quote (Printer.pr_inductive (Global.env()) ind)
@@ -278,9 +289,9 @@ let declare_eq_decidability_scheme_with ?locmap l kn =
 
 let try_declare_eq_decidability ?locmap kn =
   try_declare_scheme ?locmap (eq_dec_scheme_msg (kn,0))
-    declare_eq_decidability_gen UserAutomaticRequest [] kn
+    declare_eq_decidability_gen UserAutomaticRequest None kn
 
-let declare_eq_decidability ?locmap mi = declare_eq_decidability_scheme_with ?locmap [] mi
+let declare_eq_decidability ?locmap mi = declare_eq_decidability_scheme_with ?locmap None mi
 
 let ignore_error f x =
   try f x with e when CErrors.noncritical e -> ()
@@ -390,7 +401,8 @@ let do_mutual_induction_scheme ?(force_mutual=false) env ?(isrec=true) l =
       define_individual_scheme (scheme_key (kind,sort,false)) (Some v) ind
   | ({CAst.v},kind,dep,(mutind,i),sort)::lrecspec ->
     let lnames = List.map (fun ({CAst.v},kind,dep,(mutind,j),sort) -> (j,v)) l in
-    define_mutual_scheme (scheme_key (kind,sort,true)) lnames mutind
+    let linds = List.map (fun ({CAst.v},kind,dep,(mutind,j),sort) -> (mutind,j)) l in
+    define_mutual_scheme (scheme_key (kind,sort,true)) lnames linds
   | _ -> (failwith "do_mutual_induction_scheme expects a non empty list of inductive types.")
 
 
@@ -533,7 +545,7 @@ let declare_default_schemes ?locmap kn =
     declare_induction_schemes kn ?locmap;
   if !case_flag then map_inductive_block ?locmap declare_one_case_analysis_scheme kn n;
   if is_eq_flag() then try_declare_beq_scheme kn ?locmap;
-  if !eq_dec_flag then try_declare_eq_decidability kn ?locmap;
+  if !eq_dec_flag then try_declare_eq_decidability ?locmap kn;
   if !rewriting_flag then map_inductive_block ?locmap declare_congr_scheme kn n;
   if !rewriting_flag then map_inductive_block ?locmap declare_sym_scheme kn n;
   if !rewriting_flag then map_inductive_block ?locmap declare_rewriting_schemes kn n

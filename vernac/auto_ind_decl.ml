@@ -298,9 +298,18 @@ let branch_context env ci params u nas i =
   let ctx, _ = List.chop mip.mind_consnrealdecls.(i) (fst mip.mind_nf_lc.(i)) in
   Inductive.instantiate_context u paramsubst nas ctx
 
+let rec mk_list l i n ind =
+  if i >= n then l
+  else mk_list (List.append l [(ind,i)]) (i+1) n ind
+
 let build_beq_scheme_deps env kn =
   let inds = get_inductive_deps ~noprop:true env kn in
-  List.map (fun ind -> Ind_tables.SchemeMutualDep (ind, !beq_scheme_kind_aux ())) inds
+  let l = List.map (fun ind ->
+      let mib = Global.lookup_mind ind in
+      let n = Array.length mib.mind_packets in
+      mk_list [] 0 n ind
+    ) inds in
+  List.map (fun ind -> Ind_tables.SchemeMutualDep (ind, !beq_scheme_kind_aux ())) l
 
 let build_beq_scheme env handle kn =
   check_bool_is_defined ();
@@ -662,6 +671,7 @@ let build_beq_scheme env handle kn =
      Morally corresponds to the Ind case of translate_term_eq *)
 
   (* fetching the mutual inductive body *)
+  let (kn,i) = (List.hd kn) in
   let mib = Environ.lookup_mind kn env in
 
   (* Setting universes *)
@@ -1155,7 +1165,7 @@ repeat ( apply andb_prop in z;let z1:= fresh "Z" in destruct z as [z1 z]).
       ]
     end
 
-let make_bl_scheme env handle mind =
+let make_bl_scheme env handle (mind,i) =
   let mib = Environ.lookup_mind mind env in
   if not (Int.equal (Array.length mib.mind_packets) 1) then
     CErrors.user_err
@@ -1177,15 +1187,22 @@ let make_bl_scheme env handle mind =
   let (ans, _, _, _, uctx) = Declare.build_by_tactic ~poly env ~uctx ~typ:bl_goal
     (compute_bl_tact handle (ind, EConstr.EInstance.make u) lnamesparrec nparrec)
   in
-  ([|ans|], uctx)
+  (ans, uctx)
 
-let make_bl_scheme_deps env ind =
-  let inds = get_inductive_deps ~noprop:false env ind in
-  let map ind = Ind_tables.SchemeMutualDep (ind, !bl_scheme_kind_aux ()) in
-  Ind_tables.SchemeMutualDep (ind, beq_scheme_kind) :: List.map map inds
+let make_bl_scheme_deps env (mind,i) =
+  let inds = get_inductive_deps ~noprop:false env mind in
+  let f l ind =
+    let mib = Global.lookup_mind ind in
+    let n = Array.length mib.mind_packets in  
+    let rec loop l i = if i >= n then List.rev l
+      else loop (Ind_tables.SchemeIndividualDep ((ind,0), !bl_scheme_kind_aux ())::l) (i+1)
+    in
+    List.append (loop [] 0) l
+  in
+  Ind_tables.SchemeMutualDep ([(mind,i)], beq_scheme_kind) :: (List.fold_left f [] inds)
 
 let bl_scheme_kind =
-  Ind_tables.declare_mutual_scheme_object (["Boolean";"Leibniz"],Some InType, true)
+  Ind_tables.declare_individual_scheme_object (["Boolean";"Leibniz"],Some InType, true)
   (fun id -> match id with None -> "dec_bl" | Some i -> (Id.to_string i) ^ "_" ^ "dec_bl")
   ~deps:make_bl_scheme_deps
   make_bl_scheme
@@ -1287,7 +1304,7 @@ let compute_lb_tact handle ind lnamesparrec nparrec =
       ]
     end
 
-let make_lb_scheme env handle mind =
+let make_lb_scheme env handle (mind,i) =
   let mib = Environ.lookup_mind mind env in
   if not (Int.equal (Array.length mib.mind_packets) 1) then
     CErrors.user_err
@@ -1309,15 +1326,22 @@ let make_lb_scheme env handle mind =
   let (ans, _, _, _, ctx) = Declare.build_by_tactic ~poly env ~uctx ~typ:lb_goal
     (compute_lb_tact handle ind lnamesparrec nparrec)
   in
-  ([|ans|], ctx)
+  (ans, ctx)
 
-let make_lb_scheme_deps env ind =
-  let inds = get_inductive_deps ~noprop:false env ind in
-  let map ind = Ind_tables.SchemeMutualDep (ind, !lb_scheme_kind_aux ()) in
-  Ind_tables.SchemeMutualDep (ind, beq_scheme_kind) :: List.map map inds
+let make_lb_scheme_deps env (mind,i) =
+  let inds = get_inductive_deps ~noprop:false env mind in
+  let f l ind =
+    let mib = Global.lookup_mind ind in
+    let n = Array.length mib.mind_packets in  
+    let rec loop l i = if i >= n then List.rev l
+      else loop (Ind_tables.SchemeIndividualDep ((ind,0), !bl_scheme_kind_aux ())::l) (i+1)
+    in
+    List.append (loop [] 0) l
+  in
+  Ind_tables.SchemeMutualDep ([mind,0], beq_scheme_kind) :: (List.fold_left f [] inds)
 
 let lb_scheme_kind =
-  Ind_tables.declare_mutual_scheme_object (["Leibniz";"Boolean"], Some InType, true)
+  Ind_tables.declare_individual_scheme_object (["Leibniz";"Boolean"], Some InType, true)
   (fun id -> match id with None -> "dec_lb" | Some i -> (Id.to_string i) ^ "_" ^ "dec_lb")
   ~deps:make_lb_scheme_deps
   make_lb_scheme
@@ -1483,7 +1507,7 @@ let compute_dec_tact handle (ind,u) lnamesparrec nparrec =
       end
     end
 
-let make_eq_decidability env handle mind =
+let make_eq_decidability env handle (mind,i) =
   let mib = Environ.lookup_mind mind env in
   if not (Int.equal (Array.length mib.mind_packets) 1) then
     raise DecidabilityMutualNotSupported;
@@ -1503,12 +1527,12 @@ let make_eq_decidability env handle mind =
   let (ans, _, _, _, ctx) = Declare.build_by_tactic ~poly env ~uctx
       ~typ:dec_goal (compute_dec_tact handle (ind,u) lnamesparrec nparrec)
   in
-  ([|ans|], ctx)
+  (ans, ctx)
 
 let eq_dec_scheme_kind =
-  Ind_tables.declare_mutual_scheme_object (["Decidable";"Equality"], Some InType, true)
+  Ind_tables.declare_individual_scheme_object (["Decidable";"Equality"], Some InType, true)
   (fun id -> match id with None -> "eq_dec" | Some i -> (Id.to_string i) ^ "_" ^ "eq_dec")
-  ~deps:(fun _ ind -> [SchemeMutualDep (ind, bl_scheme_kind); SchemeMutualDep (ind, lb_scheme_kind)])
+  ~deps:(fun _ (mind,i) -> [SchemeIndividualDep ((mind,i), bl_scheme_kind); SchemeIndividualDep ((mind,i), lb_scheme_kind)])
   make_eq_decidability
 
 (* The eq_dec_scheme proofs depend on the equality and discr tactics

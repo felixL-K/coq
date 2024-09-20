@@ -23,11 +23,11 @@ type 'a scheme_kind
 type handle
 
 type scheme_dependency =
-| SchemeMutualDep of MutInd.t * mutual scheme_kind
+| SchemeMutualDep of inductive list * mutual scheme_kind
 | SchemeIndividualDep of inductive * individual scheme_kind
 
 type mutual_scheme_object_function =
-  Environ.env -> handle -> MutInd.t -> constr array Evd.in_ustate
+  Environ.env -> handle -> inductive list -> constr array Evd.in_ustate
 type individual_scheme_object_function =
   Environ.env -> handle -> inductive -> constr Evd.in_ustate
 
@@ -82,7 +82,7 @@ module Locmap : sig
 end
 
 val define_mutual_scheme : ?locmap:Locmap.t -> mutual scheme_kind ->
-  (int * Id.t) list -> MutInd.t -> unit
+  (int * Id.t) list -> inductive list -> unit
 
 (** Main function to retrieve a scheme in the cache or to generate it *)
 val find_scheme : 'a scheme_kind -> inductive -> Constant.t Proofview.tactic
