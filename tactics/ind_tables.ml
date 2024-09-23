@@ -222,16 +222,22 @@ and define_mutual_scheme_base ?(locmap=Locmap.default None) kind suff f ~interna
   let mind = (fst (List.hd inds)) in
   let (cl, ctx) = f (Global.env ()) eff inds in
   let mib = Global.lookup_mind mind in
-  let ids = Array.init (Array.length mib.mind_packets) (fun i ->
-      try Int.List.assoc i names
-      with Not_found -> Id.of_string (suff (Some mib.mind_packets.(i).mind_typename))) in
-  let fold i effs id cl =
+  let ids =
+    if Array.length cl <> List.length names then
+      Array.init (Array.length mib.mind_packets) (fun i ->
+          try (i,Int.List.assoc i names)
+          with Not_found -> (i,Id.of_string (suff (Some mib.mind_packets.(i).mind_typename))))
+    else
+      Array.of_list names
+  in
+  let fold effs idd cl =
+    let (i,id) = idd in
     let role = Evd.Schema ((mind, i), kind)in
     let loc = Locmap.lookup ~locmap (mind,i) in
     let cst, neff = define ?loc internal role id cl (Declareops.inductive_is_polymorphic mib) ctx in
     (Evd.concat_side_effects neff effs, cst)
   in
-  let (eff, consts) = Array.fold_left2_map_i fold eff ids cl in
+  let (eff, consts) = Array.fold_left2_map fold eff ids cl in
   consts, eff
 
 and define_mutual_scheme ?locmap kind ~internal names inds=
@@ -283,6 +289,6 @@ let define_individual_scheme ?loc kind names ind =
   let _ , eff = define_individual_scheme ?loc kind ~internal:false names ind in
   redeclare_schemes eff
 
-let define_mutual_scheme ?locmap kind names mind =
-  let _, eff = define_mutual_scheme ?locmap kind ~internal:false names mind in
+let define_mutual_scheme ?locmap kind names inds =
+  let _, eff = define_mutual_scheme ?locmap kind ~internal:false names inds in
   redeclare_schemes eff
