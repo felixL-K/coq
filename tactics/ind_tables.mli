@@ -23,7 +23,7 @@ type 'a scheme_kind
 type handle
 
 type scheme_dependency =
-| SchemeMutualDep of inductive list * mutual scheme_kind
+| SchemeMutualDep of Names.MutInd.t * mutual scheme_kind
 | SchemeIndividualDep of inductive * individual scheme_kind
 
 type mutual_scheme_object_function =
@@ -47,7 +47,7 @@ type individual_scheme_object_function =
 
 val declare_mutual_scheme_object : string list * Sorts.family option * bool ->
   (Names.Id.t option -> string) ->
-  ?deps:(Environ.env -> MutInd.t -> scheme_dependency list) ->
+  ?deps:(Environ.env -> Names.MutInd.t -> scheme_dependency list) ->
   mutual_scheme_object_function -> mutual scheme_kind
 
 val declare_individual_scheme_object : string list * Sorts.family option * bool ->

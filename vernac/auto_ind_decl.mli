@@ -35,4 +35,4 @@ val beq_scheme_kind : mutual scheme_kind
 
 (** {6 Build decidability of equality } *)
 
-val eq_dec_scheme_kind : individual scheme_kind
+val eq_dec_scheme_kind : mutual scheme_kind

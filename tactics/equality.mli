@@ -108,4 +108,4 @@ val subst_all : ?flags:subst_tactic_flags -> unit -> unit Proofview.tactic
 *)
 val replace_term : bool option -> constr -> clause -> unit Proofview.tactic
 
-val set_eq_dec_scheme_kind : individual scheme_kind -> unit
+val set_eq_dec_scheme_kind : mutual scheme_kind -> unit

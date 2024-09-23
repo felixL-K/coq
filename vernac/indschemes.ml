@@ -275,10 +275,9 @@ let declare_eq_decidability_gen ?locmap names kn =
   let mib = Global.lookup_mind kn in
   if mib.mind_finite <> Declarations.CoFinite then
     match locmap with
-    | None -> define_individual_scheme eq_dec_scheme_kind names (kn,0)
+    | None -> define_mutual_scheme eq_dec_scheme_kind names [(kn,0)]
     | Some l ->
-      let loc = Ind_tables.Locmap.lookup ~locmap:l (kn,0) in
-      define_individual_scheme ?loc eq_dec_scheme_kind names (kn,0)
+      define_mutual_scheme ?locmap eq_dec_scheme_kind names [(kn,0)]
 
 let eq_dec_scheme_msg ind = (* TODO: mutual inductive case *)
   str "Decidable equality on " ++ quote (Printer.pr_inductive (Global.env()) ind)
@@ -289,9 +288,9 @@ let declare_eq_decidability_scheme_with ?locmap l kn =
 
 let try_declare_eq_decidability ?locmap kn =
   try_declare_scheme ?locmap (eq_dec_scheme_msg (kn,0))
-    declare_eq_decidability_gen UserAutomaticRequest None kn
+    declare_eq_decidability_gen UserAutomaticRequest [] kn
 
-let declare_eq_decidability ?locmap mi = declare_eq_decidability_scheme_with ?locmap None mi
+let declare_eq_decidability ?locmap mi = declare_eq_decidability_scheme_with ?locmap [] mi
 
 let ignore_error f x =
   try f x with e when CErrors.noncritical e -> ()

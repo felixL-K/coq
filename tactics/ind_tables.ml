@@ -49,11 +49,11 @@ type individual
 type mutual
 
 type scheme_dependency =
-| SchemeMutualDep of inductive list * mutual scheme_kind
+| SchemeMutualDep of Names.MutInd.t * mutual scheme_kind
 | SchemeIndividualDep of inductive * individual scheme_kind
 
 type scheme_object_function =
-  | MutualSchemeFunction of mutual_scheme_object_function * (Environ.env -> MutInd.t -> scheme_dependency list) option
+  | MutualSchemeFunction of mutual_scheme_object_function * (Environ.env -> Names.MutInd.t -> scheme_dependency list) option
   | IndividualSchemeFunction of individual_scheme_object_function * (Environ.env -> inductive -> scheme_dependency list) option
 
 (* Ne contient que les schemes creer au lancement de coqtop (ou autre)
@@ -256,10 +256,10 @@ match sd with
   else
     let _, eff' = define_individual_scheme kind ~internal:true None ind in
     Evd.concat_side_effects eff' eff
-| SchemeMutualDep (inds, kind) ->
-  if local_check_scheme kind (List.hd inds) eff then eff
+| SchemeMutualDep (ind, kind) ->
+  if local_check_scheme kind (ind,0) eff then eff
   else
-    let _, eff' = define_mutual_scheme kind ~internal:true [] inds in
+    let _, eff' = define_mutual_scheme kind ~internal:true [] [(ind,0)] in
     Evd.concat_side_effects eff' eff
 
 let find_scheme kind (mind,i as ind) =
