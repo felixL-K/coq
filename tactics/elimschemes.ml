@@ -31,7 +31,7 @@ let build_induction_scheme_in_type env dep sort ind =
   let sigma, c = build_induction_scheme env sigma pind dep sort in
   EConstr.to_constr sigma c, Evd.ustate sigma
 
-let build_mutual_induction_scheme_in_type env dep sort l =
+let build_mutual_induction_scheme_in_type env dep sort isrec l =
   (* let sigma = Evd.from_env env in *)
   (* let sigma, pind = Evd.fresh_inductive_instance ~rigid:UState.univ_rigid env sigma ind in *)
   (* let pind = Util.on_snd EConstr.EInstance.make pind in *)
@@ -58,7 +58,15 @@ let build_mutual_induction_scheme_in_type env dep sort l =
     loop 0 n sigma []
   in
   (* let lrecspec = List.sort (fun (((ind,i),inst),dep,new_sort) (((ind',i'),inst'),dep',new_sort') -> i'-i ) lrecspec in *)
-  let sigma, listdecl = Indrec.build_mutual_induction_scheme env sigma ~force_mutual:false lrecspec in
+  let sigma, listdecl =
+    if isrec then Indrec.build_mutual_induction_scheme env sigma ~force_mutual:false lrecspec
+    else
+      List.fold_left_map (fun sigma (ind,dep,sort) ->
+          let sigma, c = Indrec.build_case_analysis_scheme env sigma ind dep sort in
+          let c, _ = Indrec.eval_case_analysis c in
+          sigma, c)
+        sigma lrecspec
+  in
   let array = Array.of_list listdecl in
   let l = Array.map (fun x -> EConstr.to_constr sigma x) array in
   l, Evd.ustate sigma
@@ -143,7 +151,7 @@ let rect_dep =
 let mutual_rect_dep =
   declare_mutual_scheme_object (["Induction"], Some InType, true)
     (fun id -> match id with None -> "rect_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "rect_dep")
-    (fun env _ x -> build_mutual_induction_scheme_in_type env true InType x)
+    (fun env _ x -> build_mutual_induction_scheme_in_type env true InType true x)
 
 (* (Induction, Some inSet) 
 enleve dep dans suff *)
@@ -155,7 +163,7 @@ let rec_dep =
 let mutual_rec_dep =
   declare_mutual_scheme_object (["Induction"], Some InSet, true)
     (fun id -> match id with None -> "rec_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "rec_dep")
-    (fun env _ x -> build_mutual_induction_scheme_in_type env true InSet x)
+    (fun env _ x -> build_mutual_induction_scheme_in_type env true InSet true x)
 
 (* (Induction, Some inProp) *)
 let ind_dep =
@@ -166,7 +174,7 @@ let ind_dep =
 let mutual_ind_dep =
   declare_mutual_scheme_object (["Induction"], Some InProp, true)
     (fun id -> match id with None -> "ind_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "ind_dep")
-    (fun env _ x -> build_mutual_induction_scheme_in_type env true InProp x)
+    (fun env _ x -> build_mutual_induction_scheme_in_type env true InProp true x)
 
 (* (Induction, Some inSProp) *)
 let sind_dep =
@@ -177,7 +185,7 @@ let sind_dep =
 let mutual_sind_dep =
   declare_mutual_scheme_object (["Induction"], Some InSProp, true)
     (fun id -> match id with None -> "sind_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "sind_dep")
-    (fun env _ x -> build_mutual_induction_scheme_in_type env true InSProp x)
+    (fun env _ x -> build_mutual_induction_scheme_in_type env true InSProp true x)
 
 (* (Minimality, Some inType) *)
 let rect_nodep =
@@ -188,7 +196,7 @@ let rect_nodep =
 let mutual_rect_nodep =
   declare_mutual_scheme_object (["Minimality"], Some InType, true)
     (fun id -> match id with None -> "rect_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "rect_nodep")
-    (fun env _ x -> build_mutual_induction_scheme_in_type env false InType x)
+    (fun env _ x -> build_mutual_induction_scheme_in_type env false InType true x)
 
 (* (Minimality, Some inSet) *)
 let rec_nodep =
@@ -199,7 +207,7 @@ let rec_nodep =
 let mutual_rec_nodep =
   declare_mutual_scheme_object (["Minimality"], Some InSet, true)
     (fun id -> match id with None -> "rec_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "rec_nodep")
-    (fun env _ x -> build_mutual_induction_scheme_in_type env false InSet x)
+    (fun env _ x -> build_mutual_induction_scheme_in_type env false InSet true x)
 
 (* (Minimality, Some inProp) 
 enleve nodep dans suff *)
@@ -211,7 +219,7 @@ let ind_nodep =
 let mutual_ind_nodep =
   declare_mutual_scheme_object (["Minimality"], Some InProp, true)
     (fun id -> match id with None -> "ind_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "ind_nodep")
-    (fun env _ x -> build_mutual_induction_scheme_in_type env false InProp x)
+    (fun env _ x -> build_mutual_induction_scheme_in_type env false InProp true x)
 
 (* (Minimality, Some inSProp) 
 enleve nodep dans suff *)
@@ -223,7 +231,7 @@ let sind_nodep =
 let mutual_sind_nodep =
   declare_mutual_scheme_object (["Minimality"], Some InSProp, true)
     (fun id -> match id with None -> "sind_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "sind_nodep")
-    (fun env _ x -> build_mutual_induction_scheme_in_type env false InSProp x)
+    (fun env _ x -> build_mutual_induction_scheme_in_type env false InSProp true x)
 
 
 let elim_scheme ~dep ~to_kind =
@@ -254,11 +262,10 @@ let case_dep =
     (fun id -> match id with None -> "case_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "case_dep")
     (fun env _ x -> build_case_analysis_scheme_in_type env true InType x)
 
-(* Case, inType*)
-let case_nodep =
-  declare_individual_scheme_object (["Case"], Some InType, false)
-    (fun id -> match id with None -> "case_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "case_nodep")
-    (fun env _ x -> build_case_analysis_scheme_in_type env false InType x)
+let mutual_case_dep =
+  declare_mutual_scheme_object (["Elimination"], Some InType, true)
+    (fun id -> match id with None -> "case_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "case_dep")
+    (fun env _ x -> build_mutual_induction_scheme_in_type env true InType false x)
 
 (* Elimination, inProp*)
 let casep_dep =
@@ -266,9 +273,75 @@ let casep_dep =
     (fun id -> match id with None -> "casep_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "casep_dep")
     (fun env _ x -> build_case_analysis_scheme_in_type env true InProp x)
 
+let mutual_casep_dep =
+  declare_mutual_scheme_object (["Elimination"], Some InProp, true)
+    (fun id -> match id with None -> "casep_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "casep_dep")
+    (fun env _ x -> build_mutual_induction_scheme_in_type env true InProp false x)
+
+(* Elimination, inSProp*)
+let cases_dep =
+  declare_individual_scheme_object (["Elimination"], Some InSProp, false)
+    (fun id -> match id with None -> "cases_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "cases_dep")
+    (fun env _ x -> build_case_analysis_scheme_in_type env true InSProp x)
+
+let mutual_cases_dep =
+  declare_mutual_scheme_object (["Elimination"], Some InSProp, true)
+    (fun id -> match id with None -> "cases_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "cases_dep")
+    (fun env _ x -> build_mutual_induction_scheme_in_type env true InSProp false x)
+
+(* Elimination, inSet*)
+(* let casep_dep_set = *)
+(*   declare_individual_scheme_object (["Elimination"], Some InSet, false) *)
+(*     (fun id -> match id with None -> "casep_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "casep_dep") *)
+(*     (fun env _ x -> build_case_analysis_scheme_in_type env true InSet x) *)
+
+let mutual_casep_dep_set =
+  declare_mutual_scheme_object (["Elimination"], Some InSet, true)
+    (fun id -> match id with None -> "casep_dep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "casep_dep")
+    (fun env _ x -> build_mutual_induction_scheme_in_type env true InSet false x)
+
+(* Case, inType*)
+let case_nodep =
+  declare_individual_scheme_object (["Case"], Some InType, false)
+    (fun id -> match id with None -> "case_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "case_nodep")
+    (fun env _ x -> build_case_analysis_scheme_in_type env false InType x)
+
+let mutual_case_nodep =
+  declare_mutual_scheme_object (["Case"], Some InType, true)
+    (fun id -> match id with None -> "case_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "case_nodep")
+    (fun env _ x -> build_mutual_induction_scheme_in_type env false InType false x)
+
+
 (* Case, InProp *)
 let casep_nodep =
   declare_individual_scheme_object (["Case"], Some InProp, false)
     (fun id -> match id with None -> "casep_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "casep_nodep")
     (fun env _ x -> build_case_analysis_scheme_in_type env false InProp x)
-    
+
+let mutual_casep_nodep =
+  declare_mutual_scheme_object (["Case"], Some InProp, true)
+    (fun id -> match id with None -> "casep_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "casep_nodep")
+    (fun env _ x -> build_mutual_induction_scheme_in_type env false InProp false x)
+
+
+(* Case, InSProp *)
+let cases_nodep =
+  declare_individual_scheme_object (["Case"], Some InSProp, false)
+    (fun id -> match id with None -> "cases_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "cases_nodep")
+    (fun env _ x -> build_case_analysis_scheme_in_type env false InSProp x)
+
+let mutual_cases_nodep =
+  declare_mutual_scheme_object (["Case"], Some InSProp, true)
+    (fun id -> match id with None -> "cases_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "cases_nodep")
+    (fun env _ x -> build_mutual_induction_scheme_in_type env false InSProp false x)
+
+(* Case, inSet*)
+(* let case_nodep = *)
+(*   declare_individual_scheme_object (["Case"], Some InSet, false) *)
+(*     (fun id -> match id with None -> "case_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "case_nodep") *)
+(*     (fun env _ x -> build_case_analysis_scheme_in_type env false InSet x) *)
+
+let mutual_case_nodep_set =
+  declare_mutual_scheme_object (["Case"], Some InSet, true)
+    (fun id -> match id with None -> "case_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "case_nodep")
+    (fun env _ x -> build_mutual_induction_scheme_in_type env false InSet false x)

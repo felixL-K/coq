@@ -395,9 +395,6 @@ let name_and_process_scheme env = function
 
 let do_mutual_induction_scheme ?(force_mutual=false) env ?(isrec=true) l =
   match l with
-  | [({CAst.v},kind,dep,ind,sort)] ->
-    if List.length l = 1 then
-      define_individual_scheme (scheme_key (kind,sort,false)) (Some v) ind
   | ({CAst.v},kind,dep,(mutind,i),sort)::lrecspec ->
     let lnames = List.map (fun ({CAst.v},kind,dep,(mutind,j),sort) -> (j,v)) l in
     let linds = List.map (fun ({CAst.v},kind,dep,(mutind,j),sort) -> (mutind,j)) l in
