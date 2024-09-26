@@ -103,6 +103,15 @@ let is_declared_scheme_object key =
 let scheme_kind_name (key : _ scheme_kind) : string list * Sorts.family option * bool = key
 
 let scheme_key (key : string list * Sorts.family option * bool) : _ scheme_kind  = key
+
+let get_suff sch_type sch_sort =
+  try
+    fst (
+      match sch_sort with
+      | Some st -> Hashtbl.find scheme_object_table (sch_type,sch_sort,true)
+      | None -> Hashtbl.find scheme_object_table (sch_type,Some InType,true)
+      )
+  with Not_found -> assert false
   
 (**********************************************************************)
 (* Defining/retrieving schemes *)
@@ -241,6 +250,8 @@ and define_mutual_scheme_base ?(locmap=Locmap.default None) kind suff f ~interna
   consts, eff
 
 and define_mutual_scheme ?locmap kind ~internal names inds=
+  let (strl,sortf,m) = kind in
+  let kind = match sortf with Some k -> (strl,sortf,m) | None -> (strl,Some Sorts.InType,m) in 
   match Hashtbl.find scheme_object_table kind with
   | _,IndividualSchemeFunction _ -> assert false
   | s,MutualSchemeFunction (f, deps) ->

@@ -322,6 +322,7 @@ let mutual_casep_nodep =
   declare_mutual_scheme_object (["Case"], Some InProp, true)
     (fun id -> match id with None -> "casep_nodep" | Some i -> (Names.Id.to_string i) ^ "_" ^ "casep_nodep")
     (fun env _ x -> build_mutual_induction_scheme_in_type env false InProp false x)
+(* ici, si la liste est > 1 on raise la bonne erreur *)
 
 
 (* Case, InSProp *)

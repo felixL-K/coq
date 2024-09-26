@@ -12,7 +12,7 @@ open Names
 open Constr
 open Environ
 
-type resolved_scheme = Names.Id.t CAst.t * string list * Indrec.dep_flag * Names.inductive * Sorts.family option
+type resolved_scheme = Names.Id.t CAst.t * string list * Names.inductive * Sorts.family option
 
 (** See also Auto_ind_decl, Indrec, Eqscheme, Ind_tables, ... *)
 
@@ -38,7 +38,7 @@ val declare_rewriting_schemes : ?loc:Loc.t -> inductive -> unit
  *)
 
 val do_mutual_induction_scheme : ?force_mutual:bool
-  -> Environ.env -> ?isrec:bool -> resolved_scheme list -> unit
+  -> Environ.env -> resolved_scheme list -> unit
 
 (** Main calls to interpret the Scheme command *)
 

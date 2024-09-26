@@ -63,7 +63,9 @@ val scheme_kind_name : _ scheme_kind -> string list * Sorts.family option * bool
 (** Name of a [scheme_kind]. Can be used to register with DeclareScheme. *)
 
 val scheme_key : string list * Sorts.family option * bool -> _ scheme_kind
-    
+
+val get_suff : string list -> Sorts.family option -> Names.Id.t option -> string
+  
 (** Force generation of a (mutually) scheme with possibly user-level names *)
 
 val define_individual_scheme : ?loc:Loc.t -> individual scheme_kind ->

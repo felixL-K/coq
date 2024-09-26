@@ -1005,3 +1005,16 @@ Scheme Boolean Equality for nat.
 ** CList.Map
 
 grep -rn "CList.Map" *
+* solo 6
+
+- [ ] Deplacer try_declare_scheme dans la fonction de auto_ind_decl
+
+- [ ] Deplacer dans la fonction de Case erreur dans elimscheme.
+
+- [ ] print foo : eq_ind plutot que internal_eq_ind_nodep 
+ligne 17 Scheme eq_ind : creer un scheme mutuel, alors qu on le cherche indviduel par la suite avec le discriminate
+
+- [ ] internal dans LES beq : à voir pk car on le def dans la fct eq_dec de auto_ind_decl normalement
+
+- mettre beq en dependance de decidable equality et voir si ca marche
+NON car les dep c est en internal_
