@@ -1007,14 +1007,75 @@ Scheme Boolean Equality for nat.
 grep -rn "CList.Map" *
 * solo 6
 
-- [ ] Deplacer try_declare_scheme dans la fonction de auto_ind_decl
+- [X] Deplacer try_declare_scheme dans la fonction de auto_ind_decl
+
+- [X] print foo : eq_ind plutot que internal_eq_ind_nodep 
+ligne 17 Scheme eq_ind : creer un scheme mutuel, alors qu on le cherche indviduel par la suite avec le discriminate
 
 - [ ] Deplacer dans la fonction de Case erreur dans elimscheme.
 
-- [ ] print foo : eq_ind plutot que internal_eq_ind_nodep 
-ligne 17 Scheme eq_ind : creer un scheme mutuel, alors qu on le cherche indviduel par la suite avec le discriminate
-
 - [ ] internal dans LES beq : à voir pk car on le def dans la fct eq_dec de auto_ind_decl normalement
 
-- mettre beq en dependance de decidable equality et voir si ca marche
+mettre beq en dependance de decidable equality et voir si ca marche
 NON car les dep c est en internal_
+
+
+- [ ] inds vs. sind_dep
+
+Avec Scheme, les schémas SProp sont "inds" pour Induction mais "sind_dep" quand construit par elimschemes.ml
+
+- [ ] faire une issue sur github : 
+trouver des exemples : 
+   SchemeNames.v : 
+
+qd dans SProp alors dep mais dans Prop cest pas dep
+
+(* Is it intended that SProp elimination schemes are non dependent by default *)
+  (* for inductive types in Prop but not for inductive types in SProp *)
+  Inductive fooProp : Prop := aP | bP.
+  Check fooProp_sind. (* non dependent *)
+  Inductive fooSProp : SProp := aSP | bSP.
+  Check fooSProp_sind. (* dependent *)
+
+  (* Is it intended that SProp elimination schemes are named _sind when derived at Inductive time
+     and _inds when derived with Scheme *)
+  Scheme Induction for fooSProp Sort SProp.
+  Check fooSProp_inds.
+
+
+entre inds et sind clairement il faut choisir
+gaeitant gilbert
+
+- [ ] la fonction suff : rajouter un argument Sorts.family mais qui n est pas celui d'arriver, mais de depart : cad le sort du type de l'inductif sur lequel on fait le schema
+InProp -> par défault le dépendant a un _dep
+InType -> par défault le dépendant n'a pas un _dep
+et inversement 
+InProp -> par défault le non dépendant n'a rien
+InType -> par défaut, le non dépendant a un _nodep
+
+dans SProp c est comme dans InType
+
+#+begin_src ocaml
+let sch_isdep = function
+| SchemeInduction  | SchemeElimination -> true
+| SchemeMinimality | SchemeCase        -> false
+
+let sch_isrec = function
+| SchemeInduction | SchemeMinimality -> true
+| SchemeElimination | SchemeCase -> false
+#+end_src
+
+===========================================================
+
+- [ ] dans elimscheme : enlever les true/false qui represente le mutuelle ou individuel, et les faire rajouter par declare_individual_scheme_object ou declare_mutual_scheme_object
+
+
+dune exec coqide bugs/bug_10816.v
+
+
+internal : qd il fait un find scheme et qu il ne trouve pas le schema
+dans equality.ml essentiellement
+
+=====================================================
+do mutual scheme : nettoyer etc
+

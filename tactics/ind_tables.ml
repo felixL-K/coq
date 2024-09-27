@@ -72,8 +72,18 @@ let key_str key =
   str_list ^ str_option
 
     
-(* let make_suff key = *)
-(*   (function *)
+(* let make_suff_fun f ind = *)
+(*   let sort =  *)
+(*      match ind.mind_arity with *)
+(*      | RegularArity a -> a.mind_sort *)
+(*      | TemplateArity b -> b.template_level *)
+(*   in *)
+  
+
+  
+(*   match sort with *)
+  
+(*   (match name with *)
 (*      | None -> (key_str key) *)
 (*      | Some id -> (Id.to_string id) ^ "_" ^ (key_str key)) *)
 
@@ -111,7 +121,13 @@ let get_suff sch_type sch_sort =
       | Some st -> Hashtbl.find scheme_object_table (sch_type,sch_sort,true)
       | None -> Hashtbl.find scheme_object_table (sch_type,Some InType,true)
       )
-  with Not_found -> assert false
+  with Not_found ->
+  (try
+    fst (match sch_sort with
+      | Some st -> Hashtbl.find scheme_object_table (sch_type,sch_sort,false)
+      | None -> Hashtbl.find scheme_object_table (sch_type,Some InType,false)
+       )
+   with Not_found -> assert false) 
   
 (**********************************************************************)
 (* Defining/retrieving schemes *)
