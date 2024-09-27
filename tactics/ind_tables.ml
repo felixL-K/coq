@@ -59,7 +59,7 @@ type scheme_object_function =
 (* Ne contient que les schemes creer au lancement de coqtop (ou autre)
    On n'y ajoute pas les schemes des inductifs def par l'utilisateur. *)
 let scheme_object_table =
-  (Hashtbl.create 17 : ((string list * Sorts.family option * bool), (Names.Id.t option -> string) * scheme_object_function) Hashtbl.t)
+  (Hashtbl.create 17 : ((string list * Sorts.family option * bool), (one_inductive_body option -> string) * scheme_object_function) Hashtbl.t)
 (* (Hashtbl.create 17 : (string, string * scheme_object_function) Hashtbl.t) *)
 
 let key_str key =
@@ -227,7 +227,7 @@ let rec define_individual_scheme_base ?loc kind suff f ~internal idopt (mind,i a
   let mib = Global.lookup_mind mind in
   let id = match idopt with
     | Some id -> id
-    | None -> Id.of_string (suff (Some mib.mind_packets.(i).mind_typename)) in
+    | None -> Id.of_string (suff (Some mib.mind_packets.(i))) in
   let role = Evd.Schema (ind, kind) in
   let const, neff = define ?loc internal role id c (Declareops.inductive_is_polymorphic mib) ctx in
   let eff = Evd.concat_side_effects neff eff in
@@ -239,7 +239,7 @@ and define_individual_scheme ?loc kind ~internal names (mind,i as ind) =
   | s,IndividualSchemeFunction (f, deps) ->
     let deps = match deps with None -> [] | Some deps -> deps (Global.env ()) ind in
     let eff = List.fold_left (fun eff dep -> declare_scheme_dependence eff dep) Evd.empty_side_effects deps in
-    define_individual_scheme_base ?loc kind s f ~internal names ind eff
+   define_individual_scheme_base ?loc kind s f ~internal names ind eff
 
 (* Assumes that dependencies are already defined *)
 and define_mutual_scheme_base ?(locmap=Locmap.default None) kind suff f ~internal names inds eff =
@@ -251,7 +251,7 @@ and define_mutual_scheme_base ?(locmap=Locmap.default None) kind suff f ~interna
     if Array.length cl <> List.length names then
       Array.init (Array.length mib.mind_packets) (fun i ->
           try (i,Int.List.assoc i names)
-          with Not_found -> (i,Id.of_string (suff (Some mib.mind_packets.(i).mind_typename))))
+          with Not_found -> (i,Id.of_string (suff (Some mib.mind_packets.(i)))))
     else
       Array.of_list names
   in

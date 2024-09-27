@@ -46,12 +46,12 @@ type individual_scheme_object_function =
 *)
 
 val declare_mutual_scheme_object : string list * Sorts.family option * bool ->
-  (Names.Id.t option -> string) ->
+  (Declarations.one_inductive_body option -> string) ->
   ?deps:(Environ.env -> Names.MutInd.t -> scheme_dependency list) ->
   mutual_scheme_object_function -> mutual scheme_kind
 
 val declare_individual_scheme_object : string list * Sorts.family option * bool ->
-  (Names.Id.t option -> string) ->
+  (Declarations.one_inductive_body option -> string) ->
   ?deps:(Environ.env -> inductive -> scheme_dependency list) ->
   individual_scheme_object_function ->
   individual scheme_kind
@@ -64,7 +64,7 @@ val scheme_kind_name : _ scheme_kind -> string list * Sorts.family option * bool
 
 val scheme_key : string list * Sorts.family option * bool -> _ scheme_kind
 
-val get_suff : string list -> Sorts.family option -> Names.Id.t option -> string
+val get_suff : string list -> Sorts.family option -> Declarations.one_inductive_body option -> string
   
 (** Force generation of a (mutually) scheme with possibly user-level names *)
 

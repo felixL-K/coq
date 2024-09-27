@@ -269,7 +269,12 @@ let name_and_process_scheme env = function
     (* If no name has been provided, we build one from the types of the ind requested *)
     let ind = smart_ind sch_qualid in
     let suffix = Ind_tables.get_suff sch_type sch_sort in
-    let newid = Names.Id.of_string (suffix (Some (Nametab.basename_of_global (Names.GlobRef.IndRef ind)))) in
+    let ind_path = Nametab.locate (Libnames.qualid_of_ident (Nametab.basename_of_global (Names.GlobRef.IndRef ind))) in
+    let (mind,one_ind) = match ind_path with 
+      | IndRef a -> Global.lookup_inductive a
+      | _ -> assert false
+    in
+    let newid = Names.Id.of_string (suffix (Some one_ind)) in
     let newref = CAst.make newid in
     (* let tmp = match sch_sort with Some s -> s | None -> InType in *)
     (newref,sch_type, ind, sch_sort)
