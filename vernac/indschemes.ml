@@ -196,17 +196,16 @@ let declare_induction_schemes ?(locmap=Locmap.default None) kn =
 let declare_eq_decidability_gen ?locmap names kn =
   let mib = Global.lookup_mind kn in
   if mib.mind_finite <> Declarations.CoFinite then
-    match locmap with
-    | None -> define_mutual_scheme eq_dec_scheme_kind names [(kn,0)]
-    | Some l ->
-      define_mutual_scheme ?locmap eq_dec_scheme_kind names [(kn,0)]
+    define_mutual_scheme ?locmap eq_dec_scheme_kind names [(kn,0)]
 
 
 let declare_eq_decidability_scheme_with ?locmap l kn =
   declare_eq_decidability_gen ?locmap l kn
 
 let try_declare_eq_decidability ?locmap kn =
-  ignore (define_mutual_scheme ?locmap eq_dec_scheme_kind_internal [] [kn,0])
+    let mib = Global.lookup_mind kn in
+    if mib.mind_finite <> Declarations.CoFinite then
+      define_mutual_scheme ?locmap eq_dec_scheme_kind_internal [] [kn,0]
   
 let declare_eq_decidability ?locmap mi = declare_eq_decidability_scheme_with ?locmap [] mi
 
@@ -269,10 +268,13 @@ let name_and_process_scheme env = function
     (* If no name has been provided, we build one from the types of the ind requested *)
     let ind = smart_ind sch_qualid in
     let suffix = Ind_tables.get_suff sch_type sch_sort in
-    let ind_path = Nametab.locate (Libnames.qualid_of_ident (Nametab.basename_of_global (Names.GlobRef.IndRef ind))) in
+    let ind_path = (try
+                      Nametab.locate (Libnames.qualid_of_ident (Nametab.basename_of_global (Names.GlobRef.IndRef ind)))
+                    with Not_found -> CErrors.user_err Pp.(str "You can't declare a scheme for this inductive."))
+    in
     let (mind,one_ind) = match ind_path with 
       | IndRef a -> Global.lookup_inductive a
-      | _ -> assert false
+      | _ -> CErrors.user_err Pp.(str "You can't declare a scheme for this inductive.")
     in
     let newid = Names.Id.of_string (suffix (Some one_ind)) in
     let newref = CAst.make newid in
@@ -289,7 +291,9 @@ let do_mutual_induction_scheme ?(force_mutual=false) env l =
   | ({CAst.v},kind,(mutind,i),sort)::lrecspec ->
     let lnames = List.map (fun ({CAst.v},kind,(mutind,j),sort) -> (j,v)) l in
     let linds = List.map (fun ({CAst.v},kind,(mutind,j),sort) -> (mutind,j)) l in
-    define_mutual_scheme (scheme_key (kind,sort,true)) lnames linds
+    (try 
+      define_mutual_scheme (scheme_key (kind,sort,true)) lnames linds
+    with Not_found -> CErrors.user_err Pp.(str "Mutually defined schemes should be recursive."))
   | _ -> (failwith "do_mutual_induction_scheme expects a non empty list of inductive types.")
 
 

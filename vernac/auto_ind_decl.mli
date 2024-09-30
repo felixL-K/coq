@@ -47,4 +47,4 @@ type internal_flag =
   | UserIndividualRequest   (* user action, a message is displayed *)
 
 val beq_scheme_msg : Names.MutInd.t * 'a -> Pp.t
-val try_declare_scheme : Pp.t -> ('a -> 'b -> 'c -> 'd) -> internal_flag -> 'a -> 'b -> 'c -> 'd
+val try_declare_scheme : Pp.t -> ('a -> 'b -> 'c -> 'd array * UState.t) -> internal_flag -> 'a -> 'b -> 'c -> 'd array * UState.t
