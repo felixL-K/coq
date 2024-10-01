@@ -1012,19 +1012,27 @@ grep -rn "CList.Map" *
 - [X] print foo : eq_ind plutot que internal_eq_ind_nodep 
 ligne 17 Scheme eq_ind : creer un scheme mutuel, alors qu on le cherche indviduel par la suite avec le discriminate
 
-- [ ] Deplacer dans la fonction de Case erreur dans elimscheme.
+- [X] Deplacer dans la fonction de Case erreur dans elimscheme.
 
-- [ ] internal dans LES beq : à voir pk car on le def dans la fct eq_dec de auto_ind_decl normalement
+Réponse : j'ai au final fait come ceci : 
+Dans Indschemes.do_mutual_induction_scheme pour le 2eme cas du match with, donc le cas mutual, si Not_found alors declanche une erreur : Mutually defined schemes should be recursive.
+Il y a une perte d'information car avant coq retournait le message d'erreur : 
+Case ... cannot be applied to mutual ... quelque chose
+
+- [X] internal dans LES beq : à voir pk car on le def dans la fct eq_dec de auto_ind_decl normalement
 
 mettre beq en dependance de decidable equality et voir si ca marche
 NON car les dep c est en internal_
 
+Réponse : avant on deffiniissais beq avant de definir eq_dec dans Indschemes.do_scheme_equality
+maintenant qu'on a passé tout ca dans auto_ind_decl, si on fait Scheme Equality .... alors le compilateur va definir beq en passant par les deps de Boolean to Leibnitz, se qui le rend internal.
+ma solution dans indschemes n est pas satisfaisante.
 
 - [ ] inds vs. sind_dep
 
 Avec Scheme, les schémas SProp sont "inds" pour Induction mais "sind_dep" quand construit par elimschemes.ml
 
-- [ ] faire une issue sur github : 
+faire une issue sur github : 
 trouver des exemples : 
    SchemeNames.v : 
 
@@ -1046,7 +1054,7 @@ qd dans SProp alors dep mais dans Prop cest pas dep
 entre inds et sind clairement il faut choisir
 gaeitant gilbert
 
-- [ ] la fonction suff : rajouter un argument Sorts.family mais qui n est pas celui d'arriver, mais de depart : cad le sort du type de l'inductif sur lequel on fait le schema
+- [X] la fonction suff : rajouter un argument Sorts.family mais qui n est pas celui d'arriver, mais de depart : cad le sort du type de l'inductif sur lequel on fait le schema
 InProp -> par défault le dépendant a un _dep
 InType -> par défault le dépendant n'a pas un _dep
 et inversement 

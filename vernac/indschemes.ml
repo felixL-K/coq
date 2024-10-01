@@ -286,7 +286,8 @@ let do_mutual_induction_scheme ?(force_mutual=false) env l =
   | ({CAst.v},kind,(mutind,i as ind),sort)::[] ->
     (try
       define_individual_scheme (scheme_key (kind,sort,false)) (Some v) ind
-    with Not_found ->
+     with Not_found ->
+       if kind = ["Equality"] then ignore (Ind_tables.define_mutual_scheme beq_scheme_kind [] [ind]);
       define_mutual_scheme (scheme_key (kind,sort,true)) [(i,v)] [ind])
   | ({CAst.v},kind,(mutind,i),sort)::lrecspec ->
     let lnames = List.map (fun ({CAst.v},kind,(mutind,j),sort) -> (j,v)) l in

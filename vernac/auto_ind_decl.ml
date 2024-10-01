@@ -1347,7 +1347,7 @@ let make_bl_scheme env handle indl =
      Ind_tables.declare_mutual_scheme_object (["Boolean";"Leibniz"],Some InType, true)
      (fun id -> match id with None -> "dec_bl" | Some i -> (Id.to_string i.mind_typename) ^ "_" ^ "dec_bl")
      ~deps:make_bl_scheme_deps
-     (fun env handle kn -> try_declare_scheme (bool2leibniz_scheme_msg (List.hd kn)) make_bl_scheme UserAutomaticRequest env handle kn)
+     (fun env handle kn -> try_declare_scheme (bool2leibniz_scheme_msg (List.hd kn)) make_bl_scheme UserIndividualRequest env handle kn)
 
    let bl_scheme_kind_internal =
      Ind_tables.declare_mutual_scheme_object (["Boolean";"Leibniz";"Internal"],Some InType, true)
@@ -1657,13 +1657,13 @@ let make_bl_scheme env handle indl =
    
    let make_eq_decidability env handle indl =
      let (mind,i) = match indl with hd::r -> hd | _ -> assert false in
-     let kind  = (["Boolean";"Equality"],Some Sorts.InType,true) in
-     let _ =
-       try
-         DeclareScheme.lookup_scheme kind (mind,i)
-       with Not_found -> Ind_tables.define_mutual_scheme (Ind_tables.scheme_key kind) [] indl;
-         DeclareScheme.lookup_scheme kind (mind,i)
-     in
+     (* let kind  = (["Boolean";"Equality"],Some Sorts.InType,true) in *)
+     (* let _ = *)
+     (*   try *)
+     (*     DeclareScheme.lookup_scheme kind (mind,i) *)
+     (*   with Not_found -> Ind_tables.define_mutual_scheme (Ind_tables.scheme_key kind) [] indl; *)
+     (*     DeclareScheme.lookup_scheme kind (mind,i) *)
+     (* in *)
      let mib = Environ.lookup_mind mind env in
      if not (Int.equal (Array.length mib.mind_packets) 1) then
        raise DecidabilityMutualNotSupported;
@@ -1692,7 +1692,8 @@ let make_bl_scheme env handle indl =
      Ind_tables.declare_mutual_scheme_object (["Equality"], Some InType, true)
      (fun id -> match id with None -> "eq_dec" | Some i -> (Id.to_string i.mind_typename) ^ "_" ^ "eq_dec")
      ~deps:(fun _ ind -> [SchemeMutualDep (ind, bl_scheme_kind); SchemeMutualDep (ind, lb_scheme_kind)])
-     (fun env handle kn -> try_declare_scheme (eq_dec_scheme_msg (List.hd kn)) make_eq_decidability UserIndividualRequest env handle kn)
+     (fun env handle kn ->
+        try_declare_scheme (eq_dec_scheme_msg (List.hd kn)) make_eq_decidability UserIndividualRequest env handle kn)
 
    let eq_dec_scheme_kind_internal =
      Ind_tables.declare_mutual_scheme_object (["Equality";"Internal"], Some InType, true)
