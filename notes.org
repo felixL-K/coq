@@ -1087,3 +1087,5 @@ dans equality.ml essentiellement
 =====================================================
 do mutual scheme : nettoyer etc
 
+
+
