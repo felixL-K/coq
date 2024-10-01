@@ -44,10 +44,6 @@ val do_mutual_induction_scheme : ?force_mutual:bool
 
 val do_scheme : Environ.env -> (Names.Id.t CAst.t option * Vernacexpr.scheme) list -> unit
 
-(** Main call to Scheme Equality command *)
-
-val do_scheme_equality : ?locmap:Ind_tables.Locmap.t -> Vernacexpr.equality_scheme_type -> Libnames.qualid Constrexpr.or_by_notation -> unit
-
 (** Combine a list of schemes into a conjunction of them *)
 
 val build_combined_scheme : env -> Constant.t list -> Evd.evar_map * constr * types
