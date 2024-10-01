@@ -279,7 +279,7 @@ let build_case_analysis_scheme_in_type env dep sort ind =
 (* Elimination, inType *)
 let case_dep =
   declare_individual_scheme_object (["Elimination"], Some InType, false)
-    (fun id -> make_suff_sort id "case" true)
+    (fun id -> make_suff_sort id "caset" true)
     (fun env _ x -> build_case_analysis_scheme_in_type env true InType x)
 
 (* let mutual_case_dep = *)
@@ -290,7 +290,7 @@ let case_dep =
 (* Elimination, inProp*)
 let casep_dep =
   declare_individual_scheme_object (["Elimination"], Some InProp, false)
-    (fun id -> make_suff_sort id "casep" true)
+    (fun id -> make_suff_sort id "case" true)
     (fun env _ x -> build_case_analysis_scheme_in_type env true InProp x)
 
 (* let mutual_casep_dep = *)
@@ -312,7 +312,7 @@ let cases_dep =
 (* Elimination, inSet*)
 let casep_dep_set =
   declare_individual_scheme_object (["Elimination"], Some InSet, false)
-    (fun id -> make_suff_sort id "casep" true)
+    (fun id -> make_suff_sort id "case" true)
     (fun env _ x -> build_case_analysis_scheme_in_type env true InSet x)
 
 (* let mutual_casep_dep_set = *)
@@ -326,7 +326,7 @@ let casep_dep_set =
 (* Case, inType*)
 let case_nodep =
   declare_individual_scheme_object (["Case"], Some InType, false)
-    (fun id -> make_suff_sort id "case" false)
+    (fun id -> make_suff_sort id "caset" false)
     (fun env _ x -> build_case_analysis_scheme_in_type env false InType x)
 
 (* let mutual_case_nodep = *)
@@ -338,7 +338,7 @@ let case_nodep =
 (* Case, InProp *)
 let casep_nodep =
   declare_individual_scheme_object (["Case"], Some InProp, false)
-    (fun id -> make_suff_sort id "casep" false)
+    (fun id -> make_suff_sort id "case" false)
     (fun env _ x -> build_case_analysis_scheme_in_type env false InProp x)
 
 (* let mutual_casep_nodep = *)

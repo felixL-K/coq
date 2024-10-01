@@ -295,8 +295,6 @@ let do_mutual_induction_scheme ?(force_mutual=false) env l =
       define_mutual_scheme (scheme_key (kind,sort,true)) lnames linds
     with Not_found -> CErrors.user_err Pp.(str "Mutually defined schemes should be recursive."))
   | _ -> (failwith "do_mutual_induction_scheme expects a non empty list of inductive types.")
-
-
                          
 let do_scheme_equality ?locmap sch id =
   let mind,_ = smart_ind id in
