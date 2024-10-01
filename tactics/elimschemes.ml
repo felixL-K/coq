@@ -159,7 +159,7 @@ let make_suff_sort one_ind suff dep =
       else (Names.Id.to_string i.mind_typename) ^ "_" ^ suff
     | Type _ | SProp | Set -> if dep then (Names.Id.to_string i.mind_typename) ^ "_" ^ suff
       else (Names.Id.to_string i.mind_typename) ^ "_" ^ suff ^ "_nodep"
-    | _ -> assert false
+    | QSort _ -> (Names.Id.to_string i.mind_typename) ^ "_" ^ suff
       
 (* (Induction, Some inType) 
 enleve dep dans suff *)
