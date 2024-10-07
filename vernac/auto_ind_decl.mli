@@ -41,10 +41,5 @@ val eq_dec_scheme_kind_internal : mutual scheme_kind
 val build_beq_scheme : Environ.env ->
 Ind_tables.handle -> (Names.MutInd.t * 'a) list -> Constr.t array * UState.t
   
-(** flag for internal message display *)
-type internal_flag =
-  | UserAutomaticRequest (* kernel action, a message is displayed *)
-  | UserIndividualRequest   (* user action, a message is displayed *)
-
 val beq_scheme_msg : Names.MutInd.t * 'a -> Pp.t
-val try_declare_scheme : Pp.t -> ('a -> 'b -> 'c -> 'd array * UState.t) -> internal_flag -> 'a -> 'b -> 'c -> 'd array * UState.t
+val try_declare_scheme : Pp.t -> ('a -> 'b -> 'c -> 'd array * UState.t) -> bool -> 'a -> 'b -> 'c -> 'd array * UState.t
