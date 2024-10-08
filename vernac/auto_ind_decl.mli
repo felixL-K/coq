@@ -32,12 +32,10 @@ exception DecidabilityIndicesNotSupported
 exception InternalDependencies
 
 val beq_scheme_kind : mutual scheme_kind
-val beq_scheme_kind_internal : mutual scheme_kind
 
 (** {6 Build decidability of equality } *)
 
 val eq_dec_scheme_kind : mutual scheme_kind
-val eq_dec_scheme_kind_internal : mutual scheme_kind
 val build_beq_scheme : Environ.env ->
 Ind_tables.handle -> (Names.MutInd.t * 'a) list -> Constr.t array * UState.t
   

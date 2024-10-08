@@ -119,7 +119,7 @@ let try_declare_beq_scheme ?locmap kn =
     else mk_list (List.append l [(kn,i)]) (i+1)
   in
   let l = mk_list [] 0 in
-  ignore (define_mutual_scheme ?locmap beq_scheme_kind_internal [] l)
+  ignore (define_mutual_scheme ?locmap beq_scheme_kind [] l)
 
 let declare_beq_scheme ?locmap mi = declare_beq_scheme_with ?locmap [] mi
 
@@ -205,7 +205,9 @@ let declare_eq_decidability_scheme_with ?locmap l kn =
 let try_declare_eq_decidability ?locmap kn =
     let mib = Global.lookup_mind kn in
     if mib.mind_finite <> Declarations.CoFinite then
-      define_mutual_scheme ?locmap eq_dec_scheme_kind_internal [] [kn,0]
+      try
+        define_mutual_scheme ?locmap ~intern:true eq_dec_scheme_kind [] [kn,0]
+      with _ -> ()
   
 let declare_eq_decidability ?locmap mi = declare_eq_decidability_scheme_with ?locmap [] mi
 
