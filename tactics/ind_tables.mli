@@ -23,13 +23,13 @@ type 'a scheme_kind
 type handle
 
 type scheme_dependency =
-| SchemeMutualDep of Names.MutInd.t * mutual scheme_kind
-| SchemeIndividualDep of inductive * individual scheme_kind
+| SchemeMutualDep of Names.MutInd.t * mutual scheme_kind * bool
+| SchemeIndividualDep of inductive * individual scheme_kind * bool
 
 type mutual_scheme_object_function =
-  Environ.env -> handle -> inductive list -> constr array Evd.in_ustate
+  Environ.env -> handle -> inductive list -> bool -> constr array Evd.in_ustate
 type individual_scheme_object_function =
-  Environ.env -> handle -> inductive -> constr Evd.in_ustate
+  Environ.env -> handle -> inductive -> bool -> constr Evd.in_ustate
 
 (** Main functions to register a scheme builder. Note these functions
    are not safe to be used by plugins as their effects won't be undone
@@ -47,12 +47,12 @@ type individual_scheme_object_function =
 
 val declare_mutual_scheme_object : string list * Sorts.family option * bool ->
   (Declarations.one_inductive_body option -> string) ->
-  ?deps:(Environ.env -> Names.MutInd.t -> scheme_dependency list) ->
+  ?deps:(Environ.env -> Names.MutInd.t -> bool -> scheme_dependency list) ->
   mutual_scheme_object_function -> mutual scheme_kind
 
 val declare_individual_scheme_object : string list * Sorts.family option * bool ->
   (Declarations.one_inductive_body option -> string) ->
-  ?deps:(Environ.env -> inductive -> scheme_dependency list) ->
+  ?deps:(Environ.env -> inductive -> bool -> scheme_dependency list) ->
   individual_scheme_object_function ->
   individual scheme_kind
 
@@ -68,7 +68,7 @@ val get_suff : string list -> Sorts.family option -> Declarations.one_inductive_
   
 (** Force generation of a (mutually) scheme with possibly user-level names *)
 
-val define_individual_scheme : ?loc:Loc.t -> individual scheme_kind ->
+val define_individual_scheme : ?loc:Loc.t -> ?intern:bool -> individual scheme_kind ->
   Id.t option -> inductive -> unit
 
 module Locmap : sig
@@ -83,7 +83,7 @@ module Locmap : sig
   val lookup : locmap:t -> Names.inductive -> Loc.t option
 end
 
-val define_mutual_scheme : ?locmap:Locmap.t -> mutual scheme_kind ->
+val define_mutual_scheme : ?locmap:Locmap.t -> ?intern:bool -> mutual scheme_kind ->
   (int * Id.t) list -> inductive list -> unit
 
 (** Main function to retrieve a scheme in the cache or to generate it *)
