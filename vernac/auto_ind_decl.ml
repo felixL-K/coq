@@ -1673,7 +1673,7 @@ let make_bl_scheme env handle indl =
    let eq_dec_scheme_kind =
      Ind_tables.declare_mutual_scheme_object (["Equality"], Some InType, true)
      (fun id -> match id with None -> "eq_dec" | Some i -> (Id.to_string i.mind_typename) ^ "_" ^ "eq_dec")
-     ~deps:(fun _ ind _ -> [SchemeMutualDep (ind, bl_scheme_kind, true); SchemeMutualDep (ind, lb_scheme_kind, true)])
+     ~deps:(fun _ ind _ -> [SchemeMutualDep (ind, beq_scheme_kind, false); SchemeMutualDep (ind, bl_scheme_kind, true); SchemeMutualDep (ind, lb_scheme_kind, true)])
      (fun env handle kn intern ->
         try_declare_scheme (eq_dec_scheme_msg (List.hd kn)) make_eq_decidability intern env handle kn)
 
