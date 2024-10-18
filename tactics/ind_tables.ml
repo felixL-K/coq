@@ -264,8 +264,8 @@ and define_mutual_scheme_base ?(locmap=Locmap.default None) kind suff f ~interna
   in
   let (eff, consts) = Array.fold_left2_map fold eff ids cl in
   consts, eff
-
-and define_mutual_scheme ?locmap kind ~internal names inds=
+    
+and define_mutual_scheme ?locmap kind ~internal names inds eff =
   let (strl,sortf,m) = kind in
   let kind = match sortf with Some k -> (strl,sortf,m) | None -> (strl,Some Sorts.InType,m) in 
   match Hashtbl.find scheme_object_table kind with
@@ -273,7 +273,7 @@ and define_mutual_scheme ?locmap kind ~internal names inds=
   | s,MutualSchemeFunction (f, deps) ->
     let mind = (fst (List.hd inds)) in
     let deps = match deps with None -> [] | Some deps -> deps (Global.env ()) mind internal in
-    let eff = List.fold_left (fun eff dep -> declare_scheme_dependence eff dep) Evd.empty_side_effects deps in
+    let eff = List.fold_left (fun eff dep -> declare_scheme_dependence eff dep) eff deps in
     define_mutual_scheme_base ?locmap kind s f ~internal names inds eff
 
 and declare_scheme_dependence eff sd =
@@ -286,7 +286,7 @@ match sd with
 | SchemeMutualDep (ind, kind, intern) ->
   if local_check_scheme kind (ind,0) eff then eff
   else
-    let _, eff' = define_mutual_scheme kind ~internal:intern [] [(ind,0)] in
+    let _, eff' = define_mutual_scheme kind ~internal:intern [] [(ind,0)] eff in
     Evd.concat_side_effects eff' eff
 
 let find_scheme kind (mind,i as ind) =
@@ -317,5 +317,5 @@ let define_individual_scheme ?loc ?(intern=false) kind names ind =
   redeclare_schemes eff
 
 let define_mutual_scheme ?locmap ?(intern=false) kind names inds =
-  let _, eff = define_mutual_scheme ?locmap kind ~internal:intern names inds in
+  let _, eff = define_mutual_scheme ?locmap kind ~internal:intern names inds Evd.empty_side_effects in
   redeclare_schemes eff
