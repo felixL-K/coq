@@ -869,68 +869,10 @@ let alarm what internal msg =
 
 open Pp
 
-let try_declare_scheme_dep what f internal env kn =
-  try f env kn
-  with e when CErrors.noncritical e ->
-  let e = Exninfo.capture e in
-  let rec extract_exn = function Logic_monad.TacticFailure e -> extract_exn e | e -> e in
-  let msg = match extract_exn (fst e) with
-    | ParameterWithoutEquality cst ->
-        alarm what internal
-          (str "Boolean equality not found for parameter " ++ Printer.pr_global cst ++ (str "."))
-    | InductiveWithProduct ->
-        alarm what internal
-          (str "Unable to decide equality of functional arguments.")
-    | InductiveWithSort ->
-        alarm what internal
-          (str "Unable to decide equality of type arguments.")
-    | NonSingletonProp ind ->
-        alarm what internal
-          (str "Cannot extract computational content from proposition " ++
-           quote (Printer.pr_inductive (Global.env()) ind) ++ str ".")
-    | EqNotFound ind' ->
-        alarm what internal
-          (str "Boolean equality on " ++
-           quote (Printer.pr_inductive (Global.env()) ind') ++
-           strbrk " is missing.")
-    | UndefinedCst s ->
-        alarm what internal
-          (strbrk "Required constant " ++ str s ++ str " undefined.")
-    | DeclareUniv.AlreadyDeclared (kind, id) as exn ->
-      let msg = CErrors.print exn in
-      alarm what internal msg
-    | DecidabilityMutualNotSupported ->
-        alarm what internal
-          (str "Decidability lemma for mutual inductive types not supported.")
-    | EqUnknown s ->
-         alarm what internal
-           (str "Found unsupported " ++ str s ++ str " while building Boolean equality.")
-    | NoDecidabilityCoInductive ->
-         alarm what internal
-           (str "Scheme Equality is only for inductive types.")
-    | DecidabilityIndicesNotSupported ->
-         alarm what internal
-           (str "Inductive types with indices not supported.")
-    | ConstructorWithNonParametricInductiveType ind ->
-         alarm what internal
-           (strbrk "Unsupported constructor with an argument whose type is a non-parametric inductive type." ++
-            strbrk " Type " ++ quote (Printer.pr_inductive (Global.env()) ind) ++
-            str " is applied to an argument which is not a variable.")
-    | InternalDependencies ->
-         alarm what internal
-           (strbrk "Inductive types with internal dependencies in constructors not supported.")
-    | e ->
-        alarm what internal
-          (str "Unexpected error during scheme creation: " ++ CErrors.print e)
-  in
-  match msg with
-  | None -> []
-  | Some msg -> Exninfo.iraise (CErrors.UserError msg, snd e)
-
 (* enlever le handle 
 qd appelle try decla, on applique a f a qui on a appliqué au handle *)
-let try_declare_scheme what f internal env handle kn =
-  try f env handle kn
+let try_declare_scheme what f internal env kn =
+  try Some (f env kn) (* Some f  *)
   with e when CErrors.noncritical e ->
   let e = Exninfo.capture e in
   let rec extract_exn = function Logic_monad.TacticFailure e -> extract_exn e | e -> e in
@@ -984,7 +926,7 @@ let try_declare_scheme what f internal env handle kn =
           (str "Unexpected error during scheme creation: " ++ CErrors.print e)
   in
   match msg with
-  | None -> ([||], UState.empty)
+  | None -> None (* ([||], UState.empty)  None *)
   | Some msg -> Exninfo.iraise (CErrors.UserError msg, snd e)
 
 let beq_scheme_msg (mind,i) =
@@ -1005,11 +947,18 @@ let leibniz2bool_scheme_msg ind = (* TODO: mutual inductive case *)
 
 (* ======================================================================================== *)  
 
+let prepare_f_handle f handle =
+  fun env' mutind' -> f env' handle mutind'
+
    let beq_scheme_kind =
-     Ind_tables.declare_mutual_scheme_object (["Boolean";"Equality"], Some InType, true)
+     Ind_tables.declare_mutual_scheme_object (["Boolean";"Equality"], Some InType)
      (fun id -> match id with None -> "beq" | Some i -> (Id.to_string i.mind_typename) ^ "_" ^ "beq")
-     ~deps:(fun env mutind intern -> try_declare_scheme_dep (beq_scheme_msg (mutind,0)) build_beq_scheme_deps intern env mutind)
-     (fun env handle kn intern -> try_declare_scheme (beq_scheme_msg (List.hd kn)) build_beq_scheme intern env handle kn)
+     ~deps:(fun env mutind intern -> match try_declare_scheme (beq_scheme_msg (mutind,0)) build_beq_scheme_deps intern env mutind with
+         | None -> CErrors.user_err (Pp.str "Problem when declaring scheme dependencies")
+         | Some a -> a ) 
+     (fun env handle kn intern -> match try_declare_scheme (beq_scheme_msg (List.hd kn)) (prepare_f_handle build_beq_scheme handle) intern env kn with
+        | None -> ([||], UState.empty)
+        | Some a -> a)
 
    let _ = beq_scheme_kind_aux := fun () -> beq_scheme_kind
    
@@ -1338,10 +1287,12 @@ let make_bl_scheme env handle indl =
      Ind_tables.SchemeMutualDep (ind, beq_scheme_kind, true) :: List.map map inds                                                                
 
    let bl_scheme_kind =
-     Ind_tables.declare_mutual_scheme_object (["Boolean";"Leibniz"],Some InType, true)
+     Ind_tables.declare_mutual_scheme_object (["Boolean";"Leibniz"],Some InType)
      (fun id -> match id with None -> "dec_bl" | Some i -> (Id.to_string i.mind_typename) ^ "_" ^ "dec_bl")
      ~deps:make_bl_scheme_deps
-     (fun env handle kn intern -> try_declare_scheme (bool2leibniz_scheme_msg (List.hd kn)) make_bl_scheme intern env handle kn)
+     (fun env handle kn intern -> match try_declare_scheme (bool2leibniz_scheme_msg (List.hd kn)) (prepare_f_handle make_bl_scheme handle) intern env kn with
+        | None -> ([||], UState.empty)
+        | Some a -> a)
    
    let _ = bl_scheme_kind_aux := fun () -> bl_scheme_kind
    
@@ -1471,10 +1422,12 @@ let make_bl_scheme env handle indl =
      Ind_tables.SchemeMutualDep (ind, beq_scheme_kind, true) :: List.map map inds
    
    let lb_scheme_kind =
-     Ind_tables.declare_mutual_scheme_object (["Leibniz";"Boolean"], Some InType, true)
+     Ind_tables.declare_mutual_scheme_object (["Leibniz";"Boolean"], Some InType)
      (fun id -> match id with None -> "dec_lb" | Some i -> (Id.to_string i.mind_typename) ^ "_" ^ "dec_lb")
      ~deps:make_lb_scheme_deps
-     (fun env handle kn intern -> try_declare_scheme (leibniz2bool_scheme_msg (List.hd kn)) make_lb_scheme false env handle kn)
+     (fun env handle kn intern -> match try_declare_scheme (leibniz2bool_scheme_msg (List.hd kn)) (prepare_f_handle make_lb_scheme handle) intern env kn with
+        | None -> ([||], UState.empty)
+        | Some a -> a)
 
    let _ = lb_scheme_kind_aux := fun () -> lb_scheme_kind
    
@@ -1671,11 +1624,12 @@ let make_bl_scheme env handle indl =
 (*   try_declare_scheme  *)
 
    let eq_dec_scheme_kind =
-     Ind_tables.declare_mutual_scheme_object (["Equality"], Some InType, true)
+     Ind_tables.declare_mutual_scheme_object (["Equality"], Some InType)
      (fun id -> match id with None -> "eq_dec" | Some i -> (Id.to_string i.mind_typename) ^ "_" ^ "eq_dec")
      ~deps:(fun _ ind _ -> [SchemeMutualDep (ind, beq_scheme_kind, false); SchemeMutualDep (ind, bl_scheme_kind, true); SchemeMutualDep (ind, lb_scheme_kind, true)])
-     (fun env handle kn intern ->
-        try_declare_scheme (eq_dec_scheme_msg (List.hd kn)) make_eq_decidability intern env handle kn)
+     (fun env handle kn intern -> match try_declare_scheme (eq_dec_scheme_msg (List.hd kn)) (prepare_f_handle make_eq_decidability handle) intern env kn with
+        | None -> ([||], UState.empty)
+        | Some a -> a)
 
    (* The eq_dec_scheme proofs depend on the equality and discr tactics
       but the inj tactics, that comes with discr, depends on the

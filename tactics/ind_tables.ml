@@ -48,8 +48,9 @@ let pr_scheme_kind (kind : string list * Sorts.family option * bool) =
 type individual
 type mutual
 
+
 type scheme_dependency =
-| SchemeMutualDep of Names.MutInd.t * mutual scheme_kind * bool
+| SchemeMutualDep of Names.MutInd.t * mutual scheme_kind * bool (* true = internal *)
 | SchemeIndividualDep of inductive * individual scheme_kind * bool
 
 type scheme_object_function =
@@ -101,9 +102,13 @@ let declare_scheme_object key suff f =
   end
 
 let declare_mutual_scheme_object key suff ?deps f =
+  let (strl,sortf) = key in
+  let key = (strl,sortf,true) in
   declare_scheme_object key suff (MutualSchemeFunction (f, deps))
 
 let declare_individual_scheme_object key suff ?deps f =
+  let (strl,sortf) = key in
+  let key = (strl,sortf,false) in
   declare_scheme_object key suff (IndividualSchemeFunction (f, deps))
 
 let is_declared_scheme_object key =
@@ -266,8 +271,8 @@ and define_mutual_scheme_base ?(locmap=Locmap.default None) kind suff f ~interna
   consts, eff
     
 and define_mutual_scheme ?locmap kind ~internal names inds eff =
-  let (strl,sortf,m) = kind in
-  let kind = match sortf with Some k -> (strl,sortf,m) | None -> (strl,Some Sorts.InType,m) in 
+  let (strl,sortf,mutual) = kind in
+  let kind = match sortf with Some k -> (strl,sortf,true) | None -> (strl,Some Sorts.InType,true) in 
   match Hashtbl.find scheme_object_table kind with
   | _,IndividualSchemeFunction _ -> assert false
   | s,MutualSchemeFunction (f, deps) ->
