@@ -45,12 +45,12 @@ type individual_scheme_object_function =
     inductive's name.
 *)
 
-val declare_mutual_scheme_object : string list * Sorts.family option * bool ->
+val declare_mutual_scheme_object : string list * Sorts.family option ->
   (Declarations.one_inductive_body option -> string) ->
   ?deps:(Environ.env -> Names.MutInd.t -> bool -> scheme_dependency list) ->
   mutual_scheme_object_function -> mutual scheme_kind
 
-val declare_individual_scheme_object : string list * Sorts.family option * bool ->
+val declare_individual_scheme_object : string list * Sorts.family option ->
   (Declarations.one_inductive_body option -> string) ->
   ?deps:(Environ.env -> inductive -> bool -> scheme_dependency list) ->
   individual_scheme_object_function ->
