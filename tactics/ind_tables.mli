@@ -27,9 +27,9 @@ type scheme_dependency =
 | SchemeIndividualDep of inductive * individual scheme_kind * bool
 
 type mutual_scheme_object_function =
-  Environ.env -> handle -> inductive list -> bool -> constr array Evd.in_ustate
+  Environ.env -> handle -> inductive list -> bool -> constr array Evd.in_ustate option (* None = silent error *)
 type individual_scheme_object_function =
-  Environ.env -> handle -> inductive -> bool -> constr Evd.in_ustate
+  Environ.env -> handle -> inductive -> bool -> constr Evd.in_ustate option (* None = silent error *)
 
 (** Main functions to register a scheme builder. Note these functions
    are not safe to be used by plugins as their effects won't be undone

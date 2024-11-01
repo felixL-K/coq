@@ -956,9 +956,8 @@ let prepare_f_handle f handle =
      ~deps:(fun env mutind intern -> match try_declare_scheme (beq_scheme_msg (mutind,0)) build_beq_scheme_deps intern env mutind with
          | None -> CErrors.user_err (Pp.str "Problem when declaring scheme dependencies")
          | Some a -> a ) 
-     (fun env handle kn intern -> match try_declare_scheme (beq_scheme_msg (List.hd kn)) (prepare_f_handle build_beq_scheme handle) intern env kn with
-        | None -> ([||], UState.empty)
-        | Some a -> a)
+     (fun env handle kn intern ->
+        try_declare_scheme (beq_scheme_msg (List.hd kn)) (prepare_f_handle build_beq_scheme handle) intern env kn)
 
    let _ = beq_scheme_kind_aux := fun () -> beq_scheme_kind
    
@@ -1290,9 +1289,8 @@ let make_bl_scheme env handle indl =
      Ind_tables.declare_mutual_scheme_object (["Boolean";"Leibniz"],Some InType)
      (fun id -> match id with None -> "dec_bl" | Some i -> (Id.to_string i.mind_typename) ^ "_" ^ "dec_bl")
      ~deps:make_bl_scheme_deps
-     (fun env handle kn intern -> match try_declare_scheme (bool2leibniz_scheme_msg (List.hd kn)) (prepare_f_handle make_bl_scheme handle) intern env kn with
-        | None -> ([||], UState.empty)
-        | Some a -> a)
+     (fun env handle kn intern ->
+        try_declare_scheme (bool2leibniz_scheme_msg (List.hd kn)) (prepare_f_handle make_bl_scheme handle) intern env kn)
    
    let _ = bl_scheme_kind_aux := fun () -> bl_scheme_kind
    
@@ -1425,9 +1423,8 @@ let make_bl_scheme env handle indl =
      Ind_tables.declare_mutual_scheme_object (["Leibniz";"Boolean"], Some InType)
      (fun id -> match id with None -> "dec_lb" | Some i -> (Id.to_string i.mind_typename) ^ "_" ^ "dec_lb")
      ~deps:make_lb_scheme_deps
-     (fun env handle kn intern -> match try_declare_scheme (leibniz2bool_scheme_msg (List.hd kn)) (prepare_f_handle make_lb_scheme handle) intern env kn with
-        | None -> ([||], UState.empty)
-        | Some a -> a)
+     (fun env handle kn intern ->
+        try_declare_scheme (leibniz2bool_scheme_msg (List.hd kn)) (prepare_f_handle make_lb_scheme handle) intern env kn)
 
    let _ = lb_scheme_kind_aux := fun () -> lb_scheme_kind
    
@@ -1627,10 +1624,9 @@ let make_bl_scheme env handle indl =
      Ind_tables.declare_mutual_scheme_object (["Equality"], Some InType)
      (fun id -> match id with None -> "eq_dec" | Some i -> (Id.to_string i.mind_typename) ^ "_" ^ "eq_dec")
      ~deps:(fun _ ind _ -> [SchemeMutualDep (ind, beq_scheme_kind, false); SchemeMutualDep (ind, bl_scheme_kind, true); SchemeMutualDep (ind, lb_scheme_kind, true)])
-     (fun env handle kn intern -> match try_declare_scheme (eq_dec_scheme_msg (List.hd kn)) (prepare_f_handle make_eq_decidability handle) intern env kn with
-        | None -> ([||], UState.empty)
-        | Some a -> a)
-
+     (fun env handle kn intern ->
+        try_declare_scheme (eq_dec_scheme_msg (List.hd kn)) (prepare_f_handle make_eq_decidability handle) intern env kn)
+     
    (* The eq_dec_scheme proofs depend on the equality and discr tactics
       but the inj tactics, that comes with discr, depends on the
       eq_dec_scheme... *)
