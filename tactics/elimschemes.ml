@@ -29,7 +29,7 @@ let build_induction_scheme_in_type env dep sort ind =
   let pind = Util.on_snd EConstr.EInstance.make pind in
   let sigma, sort = Evd.fresh_sort_in_family ~rigid:UnivRigid sigma sort in
   let sigma, c = build_induction_scheme env sigma pind dep sort in
-  EConstr.to_constr sigma c, Evd.ustate sigma
+  Some (EConstr.to_constr sigma c, Evd.ustate sigma)
 
 let build_mutual_induction_scheme_in_type env dep sort isrec l =
   (* let sigma = Evd.from_env env in *)
@@ -69,7 +69,7 @@ let build_mutual_induction_scheme_in_type env dep sort isrec l =
   in
   let array = Array.of_list listdecl in
   let l = Array.map (fun x -> EConstr.to_constr sigma x) array in
-  l, Evd.ustate sigma
+  Some (l, Evd.ustate sigma)
 
 (**********************************************************************)
 (* [modify_sort_scheme s rec] replaces the sort of the scheme
@@ -137,7 +137,7 @@ let optimize_non_type_induction_scheme kind dep sort env _handle ind _ =
     let sigma, sort = Evd.fresh_sort_in_family sigma sort in
     let sigma, t', c' = weaken_sort_scheme env sigma sort npars c t in
     let sigma = Evd.minimize_universes sigma in
-    (Evarutil.nf_evars_universes sigma c', Evd.ustate sigma)
+    Some (Evarutil.nf_evars_universes sigma c', Evd.ustate sigma)
   | None ->
     build_induction_scheme_in_type env dep sort ind
 
@@ -274,7 +274,7 @@ let rec_dep =
     let sigma, sort = Evd.fresh_sort_in_family ~rigid:UnivRigid sigma sort in
     let (sigma, c) = build_case_analysis_scheme env sigma indu dep sort in
     let (c, _) = Indrec.eval_case_analysis c in
-    EConstr.Unsafe.to_constr c, Evd.ustate sigma
+    Some (EConstr.Unsafe.to_constr c, Evd.ustate sigma)
   
   (* Elimination, inType *)
   let case_dep =
