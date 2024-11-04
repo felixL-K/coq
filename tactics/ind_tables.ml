@@ -246,7 +246,7 @@ and define_individual_scheme ?loc kind ~internal names (mind,i as ind) eff =
   | s,IndividualSchemeFunction (f, deps) ->
     let deps = match deps with None -> [] | Some deps -> deps (Global.env ()) ind internal in
     match Option.List.fold_left (fun eff dep -> declare_scheme_dependence eff dep) eff deps with
-    | None -> None
+    | None -> CErrors.user_err Pp.(str "Problems were found during definition of scheme dependences.")
     | Some eff -> define_individual_scheme_base ?loc kind s f ~internal names ind eff
 
 (* Assumes that dependencies are already defined *)
@@ -284,7 +284,7 @@ and define_mutual_scheme ?locmap kind ~internal names inds eff =
     let mind = (fst (List.hd inds)) in
     let deps = match deps with None -> [] | Some deps -> deps (Global.env ()) mind internal in
     match Option.List.fold_left (fun eff dep -> declare_scheme_dependence eff dep) eff deps with
-    | None -> None
+    | None -> CErrors.user_err Pp.(str "Problems were found during definition of scheme dependences.")
     | Some eff -> define_mutual_scheme_base ?locmap kind s f ~internal names inds eff
 
 and declare_scheme_dependence eff sd =
