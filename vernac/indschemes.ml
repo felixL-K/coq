@@ -107,7 +107,9 @@ let declare_beq_scheme_with ?locmap l kn =
   declare_beq_scheme_gen ?locmap l [kn,0]
 
 open Auto_ind_decl
-    
+
+let debug = CDebug.create ~name:"indschemes" ()
+
 let try_declare_beq_scheme ?locmap kn =
   (* TODO: handle Fix, eventually handle
       proof-irrelevance; improve decidability by depending on decidability
@@ -119,7 +121,10 @@ let try_declare_beq_scheme ?locmap kn =
     else mk_list (List.append l [(kn,i)]) (i+1)
   in
   let l = mk_list [] 0 in
-  ignore (define_mutual_scheme ?locmap beq_scheme_kind [] l)
+  try (define_mutual_scheme ?locmap beq_scheme_kind [] l)
+  with CErrors.UserError e ->
+    (debug Pp.(fun () ->
+        hov 0 e ++ fnl () ++ str "Boolean Equality" ++ str " not defined."))
 
 let declare_beq_scheme ?locmap mi = declare_beq_scheme_with ?locmap [] mi
 
