@@ -855,79 +855,52 @@
      res, uctx
 
 (* ======================================================================================== *)
-let debug = CDebug.create ~name:"indschemes" ()
-
-(* internal is now a bool used to distinguish between two types of behaviour:
-    UserAutomaticRequest (aka true): A message is displayed when the action comes from the kernel.
-    UserIndividualRequest (aka false) : A message is displayed when the action is initiated by the user. *)
-let alarm what internal msg =
-  if internal then
-    (debug Pp.(fun () ->
-        hov 0 msg ++ fnl () ++ what ++ str " not defined.");
-    None)
-  else Some msg
 
 open Pp
 
 (* enlever le handle 
 qd appelle try decla, on applique a f a qui on a appliqué au handle *)
-let try_declare_scheme what f internal env kn =
+let try_declare_scheme what f env kn =
   try Some (f env kn) (* Some f  *)
   with e when CErrors.noncritical e ->
   let e = Exninfo.capture e in
   let rec extract_exn = function Logic_monad.TacticFailure e -> extract_exn e | e -> e in
   let msg = match extract_exn (fst e) with
     | ParameterWithoutEquality cst ->
-        alarm what internal
           (str "Boolean equality not found for parameter " ++ Printer.pr_global cst ++ (str "."))
     | InductiveWithProduct ->
-        alarm what internal
           (str "Unable to decide equality of functional arguments.")
     | InductiveWithSort ->
-        alarm what internal
           (str "Unable to decide equality of type arguments.")
     | NonSingletonProp ind ->
-        alarm what internal
           (str "Cannot extract computational content from proposition " ++
            quote (Printer.pr_inductive (Global.env()) ind) ++ str ".")
     | EqNotFound ind' ->
-        alarm what internal
           (str "Boolean equality on " ++
            quote (Printer.pr_inductive (Global.env()) ind') ++
            strbrk " is missing.")
     | UndefinedCst s ->
-        alarm what internal
           (strbrk "Required constant " ++ str s ++ str " undefined.")
     | DeclareUniv.AlreadyDeclared (kind, id) as exn ->
-      let msg = CErrors.print exn in
-      alarm what internal msg
+      CErrors.print exn
     | DecidabilityMutualNotSupported ->
-        alarm what internal
           (str "Decidability lemma for mutual inductive types not supported.")
     | EqUnknown s ->
-         alarm what internal
            (str "Found unsupported " ++ str s ++ str " while building Boolean equality.")
     | NoDecidabilityCoInductive ->
-         alarm what internal
            (str "Scheme Equality is only for inductive types.")
     | DecidabilityIndicesNotSupported ->
-         alarm what internal
            (str "Inductive types with indices not supported.")
     | ConstructorWithNonParametricInductiveType ind ->
-         alarm what internal
            (strbrk "Unsupported constructor with an argument whose type is a non-parametric inductive type." ++
             strbrk " Type " ++ quote (Printer.pr_inductive (Global.env()) ind) ++
             str " is applied to an argument which is not a variable.")
     | InternalDependencies ->
-         alarm what internal
            (strbrk "Inductive types with internal dependencies in constructors not supported.")
     | e ->
-        alarm what internal
           (str "Unexpected error during scheme creation: " ++ CErrors.print e)
   in
-  match msg with
-  | None -> None (* ([||], UState.empty)  None *)
-  | Some msg -> Exninfo.iraise (CErrors.UserError msg, snd e)
+  Exninfo.iraise (CErrors.UserError msg, snd e)
 
 let beq_scheme_msg (mind,i) =
   let mib = Global.lookup_mind mind in
@@ -953,11 +926,11 @@ let prepare_f_handle f handle =
    let beq_scheme_kind =
      Ind_tables.declare_mutual_scheme_object (["Boolean";"Equality"], Some InType)
      (fun id -> match id with None -> "beq" | Some i -> (Id.to_string i.mind_typename) ^ "_" ^ "beq")
-     ~deps:(fun env mutind intern -> match try_declare_scheme (beq_scheme_msg (mutind,0)) build_beq_scheme_deps intern env mutind with
+     ~deps:(fun env mutind intern -> match try_declare_scheme (beq_scheme_msg (mutind,0)) build_beq_scheme_deps env mutind with
          | None -> CErrors.user_err (Pp.str "Problem when declaring scheme dependencies")
          | Some a -> a ) 
      (fun env handle kn intern ->
-        try_declare_scheme (beq_scheme_msg (List.hd kn)) (prepare_f_handle build_beq_scheme handle) intern env kn)
+        try_declare_scheme (beq_scheme_msg (List.hd kn)) (prepare_f_handle build_beq_scheme handle) env kn)
 
    let _ = beq_scheme_kind_aux := fun () -> beq_scheme_kind
    
@@ -1290,7 +1263,7 @@ let make_bl_scheme env handle indl =
      (fun id -> match id with None -> "dec_bl" | Some i -> (Id.to_string i.mind_typename) ^ "_" ^ "dec_bl")
      ~deps:make_bl_scheme_deps
      (fun env handle kn intern ->
-        try_declare_scheme (bool2leibniz_scheme_msg (List.hd kn)) (prepare_f_handle make_bl_scheme handle) intern env kn)
+        try_declare_scheme (bool2leibniz_scheme_msg (List.hd kn)) (prepare_f_handle make_bl_scheme handle) env kn)
    
    let _ = bl_scheme_kind_aux := fun () -> bl_scheme_kind
    
@@ -1424,7 +1397,7 @@ let make_bl_scheme env handle indl =
      (fun id -> match id with None -> "dec_lb" | Some i -> (Id.to_string i.mind_typename) ^ "_" ^ "dec_lb")
      ~deps:make_lb_scheme_deps
      (fun env handle kn intern ->
-        try_declare_scheme (leibniz2bool_scheme_msg (List.hd kn)) (prepare_f_handle make_lb_scheme handle) intern env kn)
+        try_declare_scheme (leibniz2bool_scheme_msg (List.hd kn)) (prepare_f_handle make_lb_scheme handle) env kn)
 
    let _ = lb_scheme_kind_aux := fun () -> lb_scheme_kind
    
@@ -1625,7 +1598,7 @@ let make_bl_scheme env handle indl =
      (fun id -> match id with None -> "eq_dec" | Some i -> (Id.to_string i.mind_typename) ^ "_" ^ "eq_dec")
      ~deps:(fun _ ind _ -> [SchemeMutualDep (ind, beq_scheme_kind, false); SchemeMutualDep (ind, bl_scheme_kind, true); SchemeMutualDep (ind, lb_scheme_kind, true)])
      (fun env handle kn intern ->
-        try_declare_scheme (eq_dec_scheme_msg (List.hd kn)) (prepare_f_handle make_eq_decidability handle) intern env kn)
+        try_declare_scheme (eq_dec_scheme_msg (List.hd kn)) (prepare_f_handle make_eq_decidability handle) env kn)
      
    (* The eq_dec_scheme proofs depend on the equality and discr tactics
       but the inj tactics, that comes with discr, depends on the
