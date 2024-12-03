@@ -500,7 +500,8 @@ let pattern_match ps s qusubst =
   | PSQSort (qio, uio), s -> Some (qusubst |> Partial_subst.maybe_add_quality qio (quality s) |> Partial_subst.maybe_add_univ uio (extract_sort_level s))
   | (PSProp | PSSProp | PSSet | PSType _), _ -> None
 
-
+(** Map with key of type : string list * family option * bool 
+                           scheme name *  Type family  * mutual *)
 let compareT (l1,s1,b1) (l2,s2,b2) =
     let listc = CList.compare Stdlib.compare l1 l2 in
     if (listc == 0)
@@ -514,7 +515,6 @@ let compareT (l1,s1,b1) (l2,s2,b2) =
         else 1
     else listc
 
-
 module Self1 =
 struct
   type t = string list * family option * bool
@@ -523,8 +523,6 @@ end
 
 module Set = CSet.Make(Self1)
 module Map = CMap.Make(Self1)
-
-let _tmp = Map.singleton
 
 let family_to_str = function
   | InSProp -> "InSProp"

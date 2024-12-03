@@ -15,5 +15,4 @@ export COQEXTRAFLAGS='-native-compiler no'
   make -f Makefile.coq .merlin
   make
   make install
-  make -f Makefile.coq bytefiles install-byte
 )
